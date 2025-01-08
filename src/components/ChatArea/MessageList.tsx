@@ -1,14 +1,26 @@
+import { useEffect, useRef } from 'react';
 import { useMessagesStore, useUsersStore } from '../../store';
 
 const MessageList = ({ channelId }: { channelId: string }) => {
   const { messages } = useMessagesStore();
   const { users } = useUsersStore();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const channelMessages = messages
     .filter((msg) => msg.channel_id === channelId)
     .sort(
       (a, b) =>
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [channelMessages]);
 
   const formatTimestamp = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString('en-US', {
@@ -53,6 +65,7 @@ const MessageList = ({ channelId }: { channelId: string }) => {
           </div>
         );
       })}
+      <div ref={messagesEndRef} />
     </div>
   );
 };

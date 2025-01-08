@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useMessagesStore } from '../../store';
+import { useMessagesStore, useChannelsStore } from '../../store';
 
 const MessageInput = ({ channelId }: { channelId: string }) => {
   const [content, setContent] = useState('');
   const { create } = useMessagesStore();
+  const { currentChannel } = useChannelsStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +25,7 @@ const MessageInput = ({ channelId }: { channelId: string }) => {
           type="text"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Message #general"
+          placeholder={`Message #${currentChannel?.name}`}
           className="flex-1 input input-bordered"
         />
         <button type="submit" className="btn btn-primary">
