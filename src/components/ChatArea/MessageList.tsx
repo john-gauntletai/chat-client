@@ -7,6 +7,7 @@ import {
   ChatBubbleLeftIcon,
   EllipsisHorizontalIcon,
 } from '@heroicons/react/24/outline';
+import TooltipPortal from '../TooltipPortal/TooltipPortal';
 
 const MessageList = ({ channelId }: { channelId: string }) => {
   const { messages, addReaction } = useMessagesStore();
@@ -61,11 +62,9 @@ const MessageList = ({ channelId }: { channelId: string }) => {
     });
   };
 
-  const handleEmojiClick = async (emoji: any) => {
-    if (!activeMessage) return;
-
+  const handleEmojiClick = async (emoji: any, messageId: string) => {
     try {
-      await addReaction(activeMessage, emoji.native);
+      await addReaction(messageId, emoji.native);
       setShowEmojiPicker(false);
       setActiveMessage(null);
     } catch (error) {
@@ -100,7 +99,7 @@ const MessageList = ({ channelId }: { channelId: string }) => {
         return (
           <div
             key={message.id}
-            className={`relative p-2 mb-4 rounded-lg group hover:bg-base-200 ${
+            className={`relative px-4 py-2 -mx-4 group hover:bg-base-200/50 ${
               showEmojiPicker && activeMessage !== message.id
                 ? 'pointer-events-none'
                 : ''
@@ -110,13 +109,13 @@ const MessageList = ({ channelId }: { channelId: string }) => {
             }}
           >
             <div className="flex items-start gap-2">
-              <div className="avatar">
+              <div className="pt-1 avatar">
                 {user?.imageUrl ? (
-                  <div className="w-8 rounded-full">
+                  <div className="rounded-md w-9">
                     <img src={user.imageUrl} alt={user.username} />
                   </div>
                 ) : (
-                  <div className="w-8 rounded-full bg-neutral text-neutral-content">
+                  <div className="rounded-md w-9 bg-neutral text-neutral-content">
                     <span className="text-xs">{initials}</span>
                   </div>
                 )}
@@ -134,23 +133,50 @@ const MessageList = ({ channelId }: { channelId: string }) => {
                   <div>{message.content}</div>
                   {message.reactions?.length > 0 && (
                     <div className="flex gap-1 mt-1">
-                      {message.reactions.map((reaction, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-1 bg-base-200 rounded-full px-2 py-0.5 text-sm"
-                          title={reaction.users
-                            .map(
-                              (id) => users.find((u) => u.id === id)?.username
-                            )
-                            .filter(Boolean)
-                            .join(', ')}
-                        >
-                          <span>{reaction.emoji}</span>
-                          <span className="text-xs">
-                            {reaction.users.length}
-                          </span>
-                        </div>
-                      ))}
+                      {message.reactions.map((reaction, index) => {
+                        const reactedUsers = reaction.users
+                          .map((id) => users.find((u) => u.id === id)?.username)
+                          .filter(Boolean) as string[];
+
+                        let tooltipText = '';
+                        if (reactedUsers.length <= 3) {
+                          tooltipText = `${reactedUsers.join(
+                            ', '
+                          )} reacted with ${reaction.emoji}`;
+                        } else {
+                          tooltipText = `${reactedUsers
+                            .slice(0, 2)
+                            .join(', ')}, and ${
+                            reactedUsers.length - 2
+                          } others reacted with ${reaction.emoji}`;
+                        }
+
+                        return (
+                          <TooltipPortal
+                            key={index}
+                            text={tooltipText}
+                            className="flex items-center gap-1 bg-base-300/70 rounded-full px-2 py-0.5 text-sm hover:border-base-content/20 border border-transparent cursor-pointer"
+                          >
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEmojiClick(
+                                  { native: reaction.emoji },
+                                  message.id
+                                );
+                              }}
+                              className="flex items-center gap-1.5"
+                            >
+                              <span className="text-base">
+                                {reaction.emoji}
+                              </span>
+                              <span className="text-xs">
+                                {reaction.users.length}
+                              </span>
+                            </div>
+                          </TooltipPortal>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -164,66 +190,78 @@ const MessageList = ({ channelId }: { channelId: string }) => {
               }`}
             >
               <div className="flex items-center gap-0.5 bg-base-100 rounded-lg shadow-lg border border-base-300 p-[2px]">
-                {['✅', '🙌', '😂'].map((emoji) => (
-                  <button
+                {['👍', '🎉', '😂'].map((emoji) => (
+                  <TooltipPortal
                     key={emoji}
-                    className="tooltip tooltip-top before:text-xs before:content-[attr(data-tip)] before:!duration-100 flex items-center p-1.5 rounded hover:bg-base-200"
-                    data-tip={`React with ${emoji}`}
-                    onClick={() => {
-                      handleEmojiClick({ native: emoji });
-                      setActiveMessage(message.id);
-                    }}
+                    text={`React with ${emoji}`}
+                    className="flex items-center p-1.5 rounded hover:bg-base-200"
                   >
-                    <span className="text-xs font-medium">{emoji}</span>
-                  </button>
+                    <button
+                      onClick={() => {
+                        handleEmojiClick({ native: emoji }, message.id);
+                        setActiveMessage(message.id);
+                      }}
+                    >
+                      <span className="text-base">{emoji}</span>
+                    </button>
+                  </TooltipPortal>
                 ))}
-                <button
-                  className="tooltip tooltip-top before:text-xs before:content-[attr(data-tip)] before:!duration-100 flex items-center gap-1 p-1.5 rounded hover:bg-base-200"
-                  data-tip="Choose from all emojis"
-                  onClick={(event) => {
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    const viewportWidth = window.innerWidth;
-                    const viewportHeight = window.innerHeight;
-                    const pickerWidth = 352; // Default width of emoji-mart picker
-                    const pickerHeight = 435; // Default height of emoji-mart picker
-
-                    // Calculate position ensuring picker stays in viewport
-                    const left = Math.min(
-                      rect.left + window.scrollX,
-                      viewportWidth - pickerWidth - 10
-                    );
-                    const top = rect.bottom + window.scrollY + 5;
-
-                    // If it would go below viewport, show it above the button instead
-                    const finalTop =
-                      top + pickerHeight > viewportHeight
-                        ? rect.top + window.scrollY - pickerHeight - 5
-                        : top;
-
-                    setEmojiPickerPosition({
-                      top: finalTop,
-                      left: Math.max(10, left), // Ensure it's not pushed off the left edge
-                    });
-                    setActiveMessage(message.id);
-                    setShowEmojiPicker(true);
-                  }}
+                <TooltipPortal
+                  text="Choose from all emojis"
+                  className="flex items-center gap-1 p-1.5 rounded hover:bg-base-200"
                 >
-                  <FaceSmileIcon className="w-3.5 h-3.5" />
-                  <span className="text-xs font-medium">React</span>
-                </button>
-                <button
-                  className="tooltip tooltip-top before:text-xs before:content-[attr(data-tip)] before:!duration-100 flex items-center gap-1 p-1.5 hover:bg-base-200"
-                  data-tip="Reply to this message"
+                  <button
+                    onClick={(event) => {
+                      const rect = event.currentTarget.getBoundingClientRect();
+                      const viewportWidth = window.innerWidth;
+                      const viewportHeight = window.innerHeight;
+                      const pickerWidth = 352; // Default width of emoji-mart picker
+                      const pickerHeight = 435; // Default height of emoji-mart picker
+
+                      // Calculate position ensuring picker stays in viewport
+                      const left = Math.min(
+                        rect.left + window.scrollX,
+                        viewportWidth - pickerWidth - 10
+                      );
+                      const top = rect.bottom + window.scrollY + 5;
+
+                      // If it would go below viewport, show it above the button instead
+                      const finalTop =
+                        top + pickerHeight > viewportHeight
+                          ? rect.top + window.scrollY - pickerHeight - 5
+                          : top;
+
+                      setEmojiPickerPosition({
+                        top: finalTop,
+                        left: Math.max(10, left), // Ensure it's not pushed off the left edge
+                      });
+                      setActiveMessage(message.id);
+                      setShowEmojiPicker(true);
+                    }}
+                    className="flex items-center gap-1"
+                  >
+                    <FaceSmileIcon className="w-3.5 h-3.5" />
+                    <span className="text-xs font-medium">React</span>
+                  </button>
+                </TooltipPortal>
+                <TooltipPortal
+                  text="Reply in thread"
+                  className="flex items-center gap-1 p-1.5 rounded hover:bg-base-200"
                 >
-                  <ChatBubbleLeftIcon className="w-3.5 h-3.5" />
-                  <span className="text-xs font-medium">Reply</span>
-                </button>
-                <button
-                  className="tooltip tooltip-top before:text-xs before:content-[attr(data-tip)] before:!duration-100 flex items-center gap-1 p-1.5 rounded hover:bg-base-200"
-                  data-tip="More actions"
+                  <button className="flex items-center gap-1">
+                    <ChatBubbleLeftIcon className="w-3.5 h-3.5" />
+                    <span className="text-xs font-medium">Reply</span>
+                  </button>
+                </TooltipPortal>
+                <TooltipPortal
+                  text="More actions"
+                  className="p-1.5 rounded hover:bg-base-200"
+                  arrowPosition="bottom-right"
                 >
-                  <EllipsisHorizontalIcon className="w-3.5 h-3.5" />
-                </button>
+                  <button className="flex items-center">
+                    <EllipsisHorizontalIcon className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipPortal>
               </div>
             </div>
             {showEmojiPicker && activeMessage === message.id && (
@@ -238,7 +276,9 @@ const MessageList = ({ channelId }: { channelId: string }) => {
                 <div className="relative overflow-hidden border-2 rounded-lg border-base-300">
                   <Picker
                     data={data}
-                    onEmojiSelect={handleEmojiClick}
+                    onEmojiSelect={(emoji) =>
+                      handleEmojiClick(emoji, message.id)
+                    }
                     previewPosition="bottom"
                     skinTonePosition="preview"
                   />

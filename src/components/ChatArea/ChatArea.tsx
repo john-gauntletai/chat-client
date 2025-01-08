@@ -16,7 +16,7 @@ const ChatArea = () => {
   }
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="relative z-10 flex flex-col flex-1">
       <div className="p-4 border-b border-base-300">
         <h2 className="text-xl font-semibold"># {currentChannel.name}</h2>
       </div>

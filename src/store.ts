@@ -92,6 +92,7 @@ export const useMessagesStore = create<{
   fetch: () => Promise<void>;
   create: (channelId: string, content: string) => Promise<Message>;
   addMessage: (data: { message: Message }) => void;
+  updateMessage: (data: { message: Message }) => void;
   addReaction: (messageId: string, emoji: string) => Promise<void>;
 }>((set, get) => ({
   messages: [],
@@ -116,6 +117,12 @@ export const useMessagesStore = create<{
     if (!messageExists) {
       set({ messages: [...get().messages, data.message] });
     }
+  },
+  updateMessage: (data: { message: Message }) => {
+    const messages = get().messages.map(msg => 
+      msg.id === data.message.id ? data.message : msg
+    );
+    set({ messages });
   },
   addReaction: async (messageId: string, emoji: string) => {
     const response = await makeRequest(

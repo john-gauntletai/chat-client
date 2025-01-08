@@ -13,7 +13,12 @@ const UiWrapper = () => {
   const { fetch: fetchSession } = useSessionStore();
   const { fetch: fetchUsers, addUser } = useUsersStore();
   const { channels, fetch: fetchChannels, addChannel } = useChannelsStore();
-  const { messages, fetch: fetchMessages, addMessage } = useMessagesStore();
+  const {
+    messages,
+    fetch: fetchMessages,
+    addMessage,
+    updateMessage,
+  } = useMessagesStore();
 
   useEffect(() => {
     fetchSession();
@@ -46,6 +51,11 @@ const UiWrapper = () => {
         addMessage(data);
       });
 
+      // Add this handler for message updates
+      subscription.bind('message:updated', (data) => {
+        updateMessage(data);
+      });
+
       // Optional: handle other events
       subscription.bind('user-typing', (data) => {
         // Handle typing indicator
@@ -55,7 +65,16 @@ const UiWrapper = () => {
     // Cleanup subscriptions when channels change
     return () => {
       channels.forEach((channel) => {
-        pusher.unsubscribe(`channel-${channel.id}`);
+        const channelName = `channel-${channel.id}`;
+        pusher.unsubscribe(channelName);
+
+        // Clean up event bindings
+        const subscription = pusher.channel(channelName);
+        if (subscription) {
+          subscription.unbind('message:created');
+          subscription.unbind('message:updated');
+          subscription.unbind('user-typing');
+        }
       });
     };
   }, [channels]);
