@@ -6,6 +6,8 @@ interface TooltipPortalProps {
   children: React.ReactNode;
   className?: string;
   arrowPosition?: 'bottom' | 'bottom-right';
+  previewEmoji?: string;
+  maxWidth?: number;
 }
 
 const TooltipPortal = ({
@@ -13,6 +15,8 @@ const TooltipPortal = ({
   children,
   className = '',
   arrowPosition = 'bottom',
+  previewEmoji,
+  maxWidth,
 }: TooltipPortalProps) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
@@ -87,7 +91,7 @@ const TooltipPortal = ({
         createPortal(
           <div
             ref={tooltipRef}
-            className="fixed z-[9999] transform -translate-x-1/2 px-2 py-1 text-sm text-white bg-neutral rounded pointer-events-none whitespace-nowrap"
+            className="fixed z-[9999] transform -translate-x-1/2 px-2 py-1 text-xs text-white bg-neutral rounded pointer-events-none text-center"
             style={{
               top: `${tooltipPosition.top}px`,
               left: `${tooltipPosition.left}px`,
@@ -97,9 +101,25 @@ const TooltipPortal = ({
                   ? '-100%'
                   : '0%'
               })`,
+              maxWidth: maxWidth ? `${maxWidth}px` : undefined,
             }}
           >
-            {text}
+            {previewEmoji && (
+              <div className="flex justify-center mb-1">
+                <span className="text-2xl">{previewEmoji}</span>
+              </div>
+            )}
+            <div className="text-center whitespace-normal">
+              {text.split('**').map((part, i) =>
+                i % 2 === 1 ? (
+                  <span key={i} className="font-bold">
+                    {part}
+                  </span>
+                ) : (
+                  part
+                )
+              )}
+            </div>
             <div
               className={`absolute border-4 border-transparent ${
                 arrowPosition === 'bottom-right'

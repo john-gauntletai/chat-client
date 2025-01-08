@@ -140,13 +140,17 @@ const MessageList = ({ channelId }: { channelId: string }) => {
 
                         let tooltipText = '';
                         if (reactedUsers.length <= 3) {
-                          tooltipText = `${reactedUsers.join(
-                            ', '
-                          )} reacted with ${reaction.emoji}`;
+                          if (reactedUsers.length === 2) {
+                            tooltipText = `**${reactedUsers[0]}** and **${reactedUsers[1]}** reacted with ${reaction.emoji}`;
+                          } else {
+                            tooltipText = `**${reactedUsers.join(
+                              '**, **'
+                            )}** reacted with ${reaction.emoji}`;
+                          }
                         } else {
-                          tooltipText = `${reactedUsers
+                          tooltipText = `**${reactedUsers
                             .slice(0, 2)
-                            .join(', ')}, and ${
+                            .join('**, **')}**, and ${
                             reactedUsers.length - 2
                           } others reacted with ${reaction.emoji}`;
                         }
@@ -155,6 +159,8 @@ const MessageList = ({ channelId }: { channelId: string }) => {
                           <TooltipPortal
                             key={index}
                             text={tooltipText}
+                            previewEmoji={reaction.emoji}
+                            maxWidth={200}
                             className="flex items-center gap-1 bg-base-300/70 rounded-full px-2 py-0.5 text-sm hover:border-base-content/20 border border-transparent cursor-pointer"
                           >
                             <div
@@ -207,7 +213,7 @@ const MessageList = ({ channelId }: { channelId: string }) => {
                   </TooltipPortal>
                 ))}
                 <TooltipPortal
-                  text="Choose from all emojis"
+                  text="See more emojis"
                   className="flex items-center gap-1 p-1.5 rounded hover:bg-base-200"
                 >
                   <button
