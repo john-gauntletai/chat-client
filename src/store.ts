@@ -1,7 +1,11 @@
 import { create } from 'zustand'
-import { chatChannel } from './services/pusher'
 
 const SERVER_API_HOST = import.meta.env.VITE_SERVER_API_HOST;
+
+interface MessageReaction {
+  emoji: string;
+  users: string[]; // array of user IDs
+}
 
 interface Message {
   id: string;
@@ -9,6 +13,7 @@ interface Message {
   channel_id: string;
   created_at: string;
   created_by: string;
+  reactions?: MessageReaction[];
 }
 
 interface Channel {
@@ -87,6 +92,7 @@ export const useMessagesStore = create<{
   fetch: () => Promise<void>;
   create: (channelId: string, content: string) => Promise<Message>;
   addMessage: (data: { message: Message }) => void;
+  addReaction: (messageId: string, emoji: string) => Promise<void>;
 }>((set, get) => ({
   messages: [],
   fetch: async () => {
@@ -110,6 +116,20 @@ export const useMessagesStore = create<{
     if (!messageExists) {
       set({ messages: [...get().messages, data.message] });
     }
+  },
+  addReaction: async (messageId: string, emoji: string) => {
+    const response = await makeRequest(
+      `${SERVER_API_HOST}/api/messages/${messageId}/reactions`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ emoji })
+      }
+    );
+    const json = await response.json();
+    const messages = get().messages.map(msg => 
+      msg.id === messageId ? json.message : msg
+    );
+    set({ messages });
   }
 }))
 
