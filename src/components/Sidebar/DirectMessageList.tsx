@@ -26,11 +26,11 @@ const DirectMessageList = () => {
               <a className="flex items-center gap-2">
                 <div className="avatar">
                   {user.imageUrl ? (
-                    <div className="w-6 rounded-full">
+                    <div className="w-6 rounded-md">
                       <img src={user.imageUrl} alt={user.username} />
                     </div>
                   ) : (
-                    <div className="w-6 rounded-full bg-neutral text-neutral-content">
+                    <div className="w-6 rounded-md bg-neutral text-neutral-content">
                       <span className="text-xs">{initials}</span>
                     </div>
                   )}
