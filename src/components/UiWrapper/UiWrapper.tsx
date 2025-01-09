@@ -41,6 +41,23 @@ const UiWrapper = () => {
   }, []);
 
   useEffect(() => {
+    if (session) {
+      const subscription = pusher.subscribe(`user-${session.id}`);
+      subscription.bind('conversation:created', (data) => {
+        addConversation(data);
+      });
+    }
+    return () => {
+      if (session) {
+        const subscription = pusher.subscribe(`user-${session.id}`);
+        if (subscription) {
+          subscription.unbind('conversation:created');
+        }
+      }
+    };
+  }, [session]);
+
+  useEffect(() => {
     const myConversations = conversations.filter((conversation) => {
       return conversation.conversation_members.find(
         (member) => member.user_id === session?.id

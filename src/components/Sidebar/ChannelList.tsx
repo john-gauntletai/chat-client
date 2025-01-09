@@ -23,7 +23,7 @@ const ChannelList = () => {
       (a, b) =>
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
-  console.log(conversations, userChannels);
+
   const handleCreate = async () => {
     if (!newConversationName.trim()) return;
 

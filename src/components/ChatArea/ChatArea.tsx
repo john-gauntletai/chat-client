@@ -4,10 +4,14 @@ import { EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import TooltipPortal from '../TooltipPortal/TooltipPortal';
+import { useUsersStore } from '../../store';
+import { useSessionStore } from '../../store';
 
 const ChatArea = () => {
   const { currentConversation, setCurrentConversation, leaveConversation } =
     useConversationsStore();
+  const { users } = useUsersStore();
+  const { session } = useSessionStore();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -23,6 +27,22 @@ const ChatArea = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  const getConversationTitle = () => {
+    if (!currentConversation || !session) return '';
+
+    if (currentConversation.is_channel) {
+      return `# ${currentConversation.name}`;
+    }
+
+    // For DMs, show other members' usernames
+    const otherMembers = currentConversation.conversation_members
+      .filter((m) => m.user_id !== session.id)
+      .map((m) => users.find((u) => u.id === m.user_id)?.username)
+      .filter(Boolean);
+
+    return otherMembers.join(', ');
+  };
 
   if (!currentConversation) {
     return (
@@ -51,29 +71,27 @@ const ChatArea = () => {
       }`}
     >
       <div className="flex items-center justify-between p-4 border-b border-base-300">
-        <h2 className="text-xl font-semibold">
-          {currentConversation.is_channel && '#'} {currentConversation.name}
-        </h2>
-        <div className="relative pointer-events-auto" ref={menuRef}>
-          <button
-            className="p-1 rounded hover:bg-base-200"
-            onClick={() => setShowMenu(!showMenu)}
-          >
-            <EllipsisVerticalIcon className="w-5 h-5" />
-          </button>
-          {showMenu && (
-            <div className="absolute right-0 w-48 mt-2 overflow-hidden border rounded-lg shadow-lg bg-base-100 border-base-300">
-              {currentConversation.is_channel && (
+        <h2 className="text-xl font-semibold">{getConversationTitle()}</h2>
+        {currentConversation.is_channel && (
+          <div className="relative pointer-events-auto" ref={menuRef}>
+            <button
+              className="p-1 rounded hover:bg-base-200"
+              onClick={() => setShowMenu(!showMenu)}
+            >
+              <EllipsisVerticalIcon className="w-5 h-5" />
+            </button>
+            {showMenu && (
+              <div className="absolute right-0 w-48 mt-2 overflow-hidden border rounded-lg shadow-lg bg-base-100 border-base-300">
                 <button
                   className="flex items-center w-full px-4 py-2 text-sm text-left hover:bg-base-200 text-error-content"
                   onClick={handleLeaveChannel}
                 >
                   Leave Channel
                 </button>
-              )}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <MessageList conversationId={currentConversation.id} />
       <MessageInput conversationId={currentConversation.id} />

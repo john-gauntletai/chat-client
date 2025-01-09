@@ -63,7 +63,7 @@ export const useConversationsStore = create<{
   fetch: () => Promise<void>;
   fetchAvailableChannels: () => Promise<Conversation[]>;
   setCurrentConversation: (conversation: Conversation) => void;
-  create: (name: string) => Promise<Conversation>;
+  create: (name: string, is_channel?: boolean, is_public?: boolean) => Promise<Conversation>;
   addConversation: (data: { conversation: Conversation }) => void;
   updateConversation: (data: { conversation: Conversation }) => void;
   joinConversation: (conversationId: string) => Promise<void>;
@@ -101,12 +101,12 @@ export const useConversationsStore = create<{
     // Update store state
     set({ currentConversation: conversation });
   },
-  create: async (name: string) => {
+  create: async (name?: string, is_channel = true, is_public = true, members: string[] = []) => {
     const response = await makeRequest(
       `${SERVER_API_HOST}/api/conversations`,
       {
         method: 'POST',
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name, is_channel, is_public, members })
       }
     );
     const json = await response.json();
