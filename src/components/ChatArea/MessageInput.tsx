@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import { useMessagesStore, useChannelsStore } from '../../store';
+import { useMessagesStore, useConversationsStore } from '../../store';
 
-const MessageInput = ({ channelId }: { channelId: string }) => {
+const MessageInput = ({ conversationId }: { conversationId: string }) => {
   const [content, setContent] = useState('');
   const { create } = useMessagesStore();
-  const { currentChannel } = useChannelsStore();
+  const { currentConversation } = useConversationsStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
 
     try {
-      await create(channelId, content);
+      await create(conversationId, content);
       setContent('');
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -25,7 +25,7 @@ const MessageInput = ({ channelId }: { channelId: string }) => {
           type="text"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder={`Message #${currentChannel?.name}`}
+          placeholder={`Message #${currentConversation?.name}`}
           className="flex-1 input input-bordered"
         />
         <button type="submit" className="btn btn-primary">

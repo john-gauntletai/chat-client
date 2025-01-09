@@ -1,22 +1,39 @@
 import { useState } from 'react';
-import { useChannelsStore } from '../../store';
+import { useConversationsStore } from '../../store';
+import JoinChannelModal from './JoinChannelModal';
+import { useSessionStore } from '../../store';
 
 const ChannelList = () => {
-  const { channels, currentChannel, setCurrentChannel, create } =
-    useChannelsStore();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newChannelName, setNewChannelName] = useState('');
+  const { conversations, currentConversation, setCurrentConversation, create } =
+    useConversationsStore();
+  const { session } = useSessionStore();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [newConversationName, setNewConversationName] = useState('');
 
+  const userChannels = conversations
+    .filter(
+      (conv) =>
+        conv.is_channel &&
+        conv.conversation_members.some(
+          (member) => member.user_id === session?.id
+        )
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+  console.log(conversations, userChannels);
   const handleCreate = async () => {
-    if (!newChannelName.trim()) return;
+    if (!newConversationName.trim()) return;
 
     try {
-      const newChannel = await create(newChannelName);
-      setCurrentChannel(newChannel);
-      setNewChannelName('');
-      setIsModalOpen(false);
+      const newConversation = await create(newConversationName);
+      setCurrentConversation(newConversation);
+      setNewConversationName('');
+      setIsCreateModalOpen(false);
     } catch (error) {
-      console.error('Failed to create channel:', error);
+      console.error('Failed to create conversation:', error);
     }
   };
 
@@ -26,29 +43,37 @@ const ChannelList = () => {
         <h2 className="text-sm font-semibold">Channels</h2>
         <button
           className="btn btn-ghost btn-xs"
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => setIsCreateModalOpen(true)}
         >
           +
         </button>
       </div>
       <ul className="menu menu-sm">
-        {channels.map((channel) => (
-          <li key={channel.id}>
+        {userChannels.map((conversation) => (
+          <li key={conversation.id}>
             <a
               className={`flex items-center gap-2 ${
-                currentChannel?.id === channel.id ? 'active' : ''
+                currentConversation?.id === conversation.id ? 'active' : ''
               }`}
-              onClick={() => setCurrentChannel(channel)}
+              onClick={() => setCurrentConversation(conversation)}
             >
               <span className="text-opacity-60">#</span>
-              {channel.name}
+              {conversation.name}
             </a>
           </li>
         ))}
       </ul>
 
+      <button
+        onClick={() => setIsJoinModalOpen(true)}
+        className="flex items-center w-full gap-2 px-2 py-1 mt-2 text-sm rounded text-base-content/60 hover:text-base-content hover:bg-base-200"
+      >
+        <span className="text-xs">+</span>
+        Join a Channel
+      </button>
+
       {/* Create Channel Modal */}
-      <dialog className={`modal ${isModalOpen ? 'modal-open' : ''}`}>
+      <dialog className={`modal ${isCreateModalOpen ? 'modal-open' : ''}`}>
         <div className="modal-box">
           <h3 className="mb-4 text-lg font-bold">Create New Channel</h3>
           <div className="form-control">
@@ -57,8 +82,8 @@ const ChannelList = () => {
             </label>
             <input
               type="text"
-              value={newChannelName}
-              onChange={(e) => setNewChannelName(e.target.value)}
+              value={newConversationName}
+              onChange={(e) => setNewConversationName(e.target.value)}
               className="input input-bordered"
               placeholder="general"
             />
@@ -67,8 +92,8 @@ const ChannelList = () => {
             <button
               className="btn btn-ghost"
               onClick={() => {
-                setIsModalOpen(false);
-                setNewChannelName('');
+                setIsCreateModalOpen(false);
+                setNewConversationName('');
               }}
             >
               Cancel
@@ -76,16 +101,21 @@ const ChannelList = () => {
             <button
               className="btn btn-primary"
               onClick={handleCreate}
-              disabled={!newChannelName.trim()}
+              disabled={!newConversationName.trim()}
             >
               Create
             </button>
           </div>
         </div>
         <form method="dialog" className="modal-backdrop">
-          <button onClick={() => setIsModalOpen(false)}>close</button>
+          <button onClick={() => setIsCreateModalOpen(false)}>close</button>
         </form>
       </dialog>
+
+      <JoinChannelModal
+        isOpen={isJoinModalOpen}
+        onClose={() => setIsJoinModalOpen(false)}
+      />
     </div>
   );
 };

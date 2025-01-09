@@ -10,15 +10,10 @@ interface MessageReaction {
 interface Message {
   id: string;
   content: string;
-  channel_id: string;
+  conversation_id: string;
   created_at: string;
   created_by: string;
   reactions?: MessageReaction[];
-}
-
-interface Channel {
-  id: string;
-  name: string;
 }
 
 interface User {
@@ -26,6 +21,16 @@ interface User {
   username: string;
   imageUrl: string;
   email: string;
+}
+
+interface Conversation {
+  id: string;
+  name?: string;
+  is_public: boolean;
+  is_channel: boolean;
+  created_at: string;
+  created_by: string;
+  conversation_members: { user_id: string }[];
 }
 
 export const useSessionStore = create((set) => ({
@@ -52,45 +57,107 @@ export const useUsersStore = create<{
   }
 }))
 
-export const useChannelsStore = create<{
-  channels: Channel[];
-  currentChannel: Channel | null;
+export const useConversationsStore = create<{
+  conversations: Conversation[];
+  currentConversation: Conversation | null;
   fetch: () => Promise<void>;
-  setCurrentChannel: (channel: Channel) => void;
-  create: (name: string) => Promise<Channel>;
-  addChannel: (data: { channel: Channel }) => void;
+  fetchAvailableChannels: () => Promise<Conversation[]>;
+  setCurrentConversation: (conversation: Conversation) => void;
+  create: (name: string) => Promise<Conversation>;
+  addConversation: (data: { conversation: Conversation }) => void;
+  updateConversation: (data: { conversation: Conversation }) => void;
+  joinConversation: (conversationId: string) => Promise<void>;
+  leaveConversation: (conversationId: string) => Promise<void>;
 }>((set, get) => ({
-  channels: [],
-  currentChannel: null,
+  conversations: [],
+  currentConversation: null,
   fetch: async () => {
-    const response = await makeRequest(`${SERVER_API_HOST}/api/channels`);
+    const response = await makeRequest(`${SERVER_API_HOST}/api/users/me/conversations`);
     const json = await response.json();
+    
+    // Get conversation_id from URL query params
+    const urlParams = new URLSearchParams(window.location.search);
+    const conversationId = urlParams.get('conversation_id');
+    
+    // Find conversation from URL param, or fallback to first conversation
+    const initialConversation = conversationId 
+      ? json.conversations.find(c => c.id.toString() === conversationId)
+      : json.conversations[0];
     set({ 
-      channels: json.channels,
-      currentChannel: json.channels[0] ?? null 
+      conversations: json.conversations,
+      currentConversation: initialConversation ?? null 
     });
   },
-  setCurrentChannel: (channel) => set({ currentChannel: channel }),
+  setCurrentConversation: (conversation) => {
+    // Update URL query parameter
+    const url = new URL(window.location.href);
+    if (conversation) {
+      url.searchParams.set('conversation_id', conversation.id);
+    } else {
+      url.searchParams.delete('conversation_id');
+    }
+    window.history.pushState({}, '', url);
+
+    // Update store state
+    set({ currentConversation: conversation });
+  },
   create: async (name: string) => {
     const response = await makeRequest(
-      `${SERVER_API_HOST}/api/channels`,
+      `${SERVER_API_HOST}/api/conversations`,
       {
         method: 'POST',
         body: JSON.stringify({ name })
       }
     );
     const json = await response.json();
-    return json.channel;
+    return json.conversation;
   },
-  addChannel: (data: { channel: Channel }) => {
-    set({ channels: [...get().channels, data.channel] });
+  addConversation: (data: { conversation: Conversation }) => {
+    set({ conversations: [...get().conversations, data.conversation] });
+  },
+  updateConversation: (data: { conversation: Conversation }) => {
+    set({ conversations: get().conversations.map(c => c.id === data.conversation.id ? data.conversation : c) });
+  },
+  fetchAvailableChannels: async () => {
+    const response = await makeRequest(`${SERVER_API_HOST}/api/conversations`);
+    const { conversations } = await response.json();
+    set({ 
+      conversations,
+    });
+    return conversations;
+  },
+  joinConversation: async (conversationId: string) => {
+    const response = await makeRequest(
+      `${SERVER_API_HOST}/api/conversations/${conversationId}/join`,
+      {
+        method: 'POST'
+      }
+    );
+    const { conversation } = await response.json();
+    
+    set({ conversations: get().conversations.map(c => c.id === conversation.id ? conversation : c) });
+  },
+  leaveConversation: async (conversationId: string) => {
+    await makeRequest(
+      `${SERVER_API_HOST}/api/conversations/${conversationId}/leave`,
+      {
+        method: 'DELETE'
+      }
+    );
+    
+    // Remove conversation from state
+    set(state => ({
+      conversations: state.conversations.filter(c => c.id !== conversationId),
+      currentConversation: null
+    }));
   }
 }))
 
 export const useMessagesStore = create<{
   messages: Message[];
   fetch: () => Promise<void>;
-  create: (channelId: string, content: string) => Promise<Message>;
+  fetchConversationMessages: (conversationId: string) => Promise<void>;
+  create: (conversationId: string, content: string) => Promise<Message>;
   addMessage: (data: { message: Message }) => void;
   updateMessage: (data: { message: Message }) => void;
   addReaction: (messageId: string, emoji: string) => Promise<void>;
@@ -101,12 +168,24 @@ export const useMessagesStore = create<{
     const json = await response.json();
     set({ messages: json.messages });
   },
-  create: async (channelId: string, content: string) => {
+  fetchConversationMessages: async (conversationId: string) => {
+    const response = await makeRequest(
+      `${SERVER_API_HOST}/api/messages?conversationId=${conversationId}`
+    );
+    const { messages } = await response.json();
+    
+    // Replace existing messages for this conversation
+    const otherMessages = get().messages.filter(
+      msg => msg.conversation_id !== conversationId
+    );
+    set({ messages: [...otherMessages, ...messages] });
+  },
+  create: async (conversationId: string, content: string) => {
     const response = await makeRequest(
       `${SERVER_API_HOST}/api/messages`, 
       {
         method: 'POST',
-        body: JSON.stringify({ channelId, content })
+        body: JSON.stringify({ conversationId, content })
       }
     );
     const json = await response.json();

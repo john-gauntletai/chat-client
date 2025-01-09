@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import {
   useSessionStore,
   useUsersStore,
-  useChannelsStore,
+  useConversationsStore,
   useMessagesStore,
 } from '../../store';
 import { globalChannel, pusher } from '../../services/pusher';
@@ -10,9 +10,14 @@ import Sidebar from '../Sidebar/Sidebar';
 import ChatArea from '../ChatArea/ChatArea';
 
 const UiWrapper = () => {
-  const { fetch: fetchSession } = useSessionStore();
+  const { session, fetch: fetchSession } = useSessionStore();
   const { fetch: fetchUsers, addUser } = useUsersStore();
-  const { channels, fetch: fetchChannels, addChannel } = useChannelsStore();
+  const {
+    conversations,
+    fetch: fetchConversations,
+    addConversation,
+    updateConversation,
+  } = useConversationsStore();
   const {
     messages,
     fetch: fetchMessages,
@@ -23,12 +28,7 @@ const UiWrapper = () => {
   useEffect(() => {
     fetchSession();
     fetchUsers();
-    fetchMessages();
-    fetchChannels();
-
-    globalChannel.bind('channel:created', (channel: Channel) => {
-      addChannel(channel);
-    });
+    fetchConversations();
 
     globalChannel.bind('user:created', (user) => {
       addUser(user);
@@ -36,16 +36,24 @@ const UiWrapper = () => {
 
     // Cleanup
     return () => {
-      globalChannel.unbind('channel:created');
       globalChannel.unbind('user:created');
     };
   }, []);
 
   useEffect(() => {
-    // Subscribe to each channel
-    channels.forEach((channel) => {
-      const channelName = `channel-${channel.id}`;
-      const subscription = pusher.subscribe(channelName);
+    const myConversations = conversations.filter((conversation) => {
+      return conversation.conversation_members.find(
+        (member) => member.user_id === session?.id
+      );
+    });
+
+    myConversations.forEach((conversation) => {
+      const conversationName = `conversation-${conversation.id}`;
+      const subscription = pusher.subscribe(conversationName);
+
+      subscription.bind('conversation:updated', (data) => {
+        updateConversation(data);
+      });
 
       subscription.bind('message:created', (data) => {
         addMessage(data);
@@ -62,22 +70,23 @@ const UiWrapper = () => {
       });
     });
 
-    // Cleanup subscriptions when channels change
+    // Cleanup subscriptions when conversations change
     return () => {
-      channels.forEach((channel) => {
-        const channelName = `channel-${channel.id}`;
-        pusher.unsubscribe(channelName);
+      myConversations.forEach((conversation) => {
+        const conversationName = `conversation-${conversation.id}`;
+        pusher.unsubscribe(conversationName);
 
         // Clean up event bindings
-        const subscription = pusher.channel(channelName);
+        const subscription = pusher.subscribe(conversationName);
         if (subscription) {
+          subscription.unbind('conversation:updated');
           subscription.unbind('message:created');
           subscription.unbind('message:updated');
           subscription.unbind('user-typing');
         }
       });
     };
-  }, [channels]);
+  }, [conversations, session]);
 
   return (
     <div className="flex h-screen bg-base-100">
