@@ -1,17 +1,23 @@
-import { useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useMessagesStore, useUsersStore } from '../../store';
-import MessageAvatar from '../MessageAvatar/MessageAvatar';
 import MessageInput from '../ChatArea/MessageInput';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import MessageView from '../MessageView/MessageView';
 
 interface Props {
-  parentMessage: any;
+  parentMessage: Message;
   onClose: () => void;
 }
 
 const ThreadFlyout = ({ parentMessage, onClose }: Props) => {
-  const { messages } = useMessagesStore();
-  const { users } = useUsersStore();
+  const { messages, addReaction } = useMessagesStore();
+  const [activeMessage, setActiveMessage] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiPickerPosition, setEmojiPickerPosition] = useState({
+    top: 0,
+    left: 0,
+  });
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   const threadMessages = [
     parentMessage,
@@ -21,12 +27,43 @@ const ThreadFlyout = ({ parentMessage, onClose }: Props) => {
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 
-  const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
+  const handleEmojiClick = async (emoji: any, messageId: string) => {
+    try {
+      await addReaction(messageId, emoji.native);
+      setShowEmojiPicker(false);
+      setActiveMessage(null);
+    } catch (error) {
+      console.error('Failed to add reaction:', error);
+    }
+  };
+
+  const handleEmojiPickerOpen = (
+    event: React.MouseEvent,
+    messageId: string
+  ) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const pickerWidth = 352;
+    const pickerHeight = 435;
+
+    const left = Math.min(
+      rect.left + window.scrollX,
+      viewportWidth - pickerWidth - 10
+    );
+    const top = rect.bottom + window.scrollY + 5;
+
+    const finalTop =
+      top + pickerHeight > viewportHeight
+        ? rect.top + window.scrollY - pickerHeight - 5
+        : top;
+
+    setEmojiPickerPosition({
+      top: finalTop,
+      left: Math.max(10, left),
     });
+    setActiveMessage(messageId);
+    setShowEmojiPicker(true);
   };
 
   return (
@@ -39,29 +76,19 @@ const ThreadFlyout = ({ parentMessage, onClose }: Props) => {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-6">
-          {threadMessages.map((message) => {
-            const user = users.find((u) => u.id === message.created_by);
-
-            return (
-              <div key={message.id} className="flex items-start gap-2">
-                <div className="pt-1">
-                  <MessageAvatar user={user} />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-bold">
-                      {user?.username || 'Unknown User'}
-                    </span>
-                    <span className="text-xs text-base-content/60">
-                      {formatTimestamp(message.created_at)}
-                    </span>
-                  </div>
-                  <div>{message.content}</div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="p-4">
+          <MessageView
+            messages={threadMessages}
+            showThread={false}
+            showDateSeparators={false}
+            onReaction={handleEmojiClick}
+            activeMessage={activeMessage}
+            showEmojiPicker={showEmojiPicker}
+            emojiPickerPosition={emojiPickerPosition}
+            onEmojiPickerOpen={handleEmojiPickerOpen}
+            onMessageHover={setActiveMessage}
+            emojiPickerRef={emojiPickerRef}
+          />
         </div>
       </div>
 
