@@ -134,120 +134,155 @@ const Message = ({
   };
 
   return (
-    <div
-      className={`relative px-4 py-2 -mx-4 group hover:bg-base-200/50 ${
-        showEmojiPicker && !isActive ? 'pointer-events-none' : ''
-      }`}
-      onMouseLeave={onMouseLeave}
-    >
-      <div className="flex items-start gap-2">
-        <div className="pt-1">
-          <MessageAvatar user={user} />
+    <div className="relative flex gap-2 px-4 py-2 group hover:bg-base-200/50">
+      <div className="pt-1">
+        <MessageAvatar user={user} />
+      </div>
+      <div className="flex-1">
+        <div className="flex items-baseline gap-2">
+          <span className="font-bold">{user?.username || 'Unknown User'}</span>
+          <span className="text-xs text-base-content/60">
+            {showDate
+              ? `${getMessageDate(message.created_at)} at ${formatTimestamp(
+                  message.created_at
+                )}`
+              : formatTimestamp(message.created_at)}
+          </span>
         </div>
-        <div className="flex-1">
-          <div className="flex items-baseline gap-2">
-            <span className="font-bold">
-              {user?.username || 'Unknown User'}
-            </span>
-            <span className="text-xs text-base-content/60">
-              {showDate
-                ? `${getMessageDate(message.created_at)} at ${formatTimestamp(
-                    message.created_at
-                  )}`
-                : formatTimestamp(message.created_at)}
-            </span>
-          </div>
-          <div className="relative">
-            <div>{message.content}</div>
-            <div className="flex flex-col gap-1 mt-1">
-              {message.reactions?.length > 0 && (
-                <div className="flex gap-1">
-                  {message.reactions.map((reaction, index) => {
-                    const reactedUsers = reaction.users
-                      .map((id) => users.find((u) => u.id === id)?.username)
-                      .filter(Boolean) as string[];
 
-                    let tooltipText = '';
-                    if (reactedUsers.length <= 3) {
-                      tooltipText =
-                        reactedUsers.length === 2
-                          ? `**${reactedUsers[0]}** and **${reactedUsers[1]}** reacted with ${reaction.emoji}`
-                          : `**${reactedUsers.join('**, **')}** reacted with ${
-                              reaction.emoji
-                            }`;
-                    } else {
-                      tooltipText = `**${reactedUsers
-                        .slice(0, 2)
-                        .join('**, **')}**, and ${
-                        reactedUsers.length - 2
-                      } others reacted with ${reaction.emoji}`;
-                    }
+        <div className="relative">
+          <div>{message.content}</div>
 
-                    const hasReacted = reaction.users.includes(session?.id);
-
-                    return (
-                      <TooltipPortal
-                        key={index}
-                        text={tooltipText}
-                        previewEmoji={reaction.emoji}
-                        maxWidth={200}
-                        className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-sm cursor-pointer ${
-                          hasReacted
-                            ? 'bg-primary/10 hover:bg-primary/20 border border-primary/30'
-                            : 'bg-base-300/70 hover:border-base-content/20 border border-transparent'
-                        }`}
-                      >
-                        <div
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onReaction({ native: reaction.emoji }, message.id);
-                          }}
-                          className="flex items-center gap-1.5"
-                        >
-                          <span className="text-base">{reaction.emoji}</span>
-                          <span
-                            className={`text-xs ${
-                              hasReacted ? 'text-primary' : ''
-                            }`}
-                          >
-                            {reaction.users.length}
-                          </span>
-                        </div>
-                      </TooltipPortal>
-                    );
-                  })}
-                </div>
-              )}
-              {showThread && replyCount > 0 && (
+          {/* Attachments */}
+          {message.attachments && message.attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {message.attachments.map((attachment, index) => (
                 <button
-                  onClick={() => onThreadSelect?.(message)}
-                  className="flex items-center self-start gap-2 group/reply rounded-md hover:bg-base-100 hover:shadow-[0_0_0_1px_rgba(0,0,0,0.1),0_1px_3px_0_rgba(0,0,0,0.1)] px-2 py-1 -ml-2"
+                  key={index}
+                  onClick={() => setSelectedAttachment(attachment)}
+                  className="flex items-center p-2 transition-colors border rounded-lg group/attachment hover:bg-base-200 border-base-300"
                 >
-                  <div className="flex -space-x-1">
-                    {repliers.map((replier) => (
-                      <div
-                        key={replier.id}
-                        className="w-5 h-5 overflow-hidden border rounded-md border-base-100"
-                      >
-                        <img
-                          src={replier.imageUrl}
-                          alt={replier.username}
-                          className="object-cover w-full h-full"
-                        />
+                  {isImageFile(attachment.type) ? (
+                    <div className="relative w-12 h-12 mr-3 overflow-hidden rounded">
+                      <img
+                        src={attachment.url}
+                        alt={attachment.name}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  ) : isVideoFile(attachment.type) ? (
+                    <div className="relative w-12 h-12 mr-3 overflow-hidden rounded">
+                      <div className="absolute inset-0 flex items-center justify-center bg-base-300">
+                        <FilmIcon className="w-6 h-6 text-base-content/60" />
                       </div>
-                    ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center w-12 h-12 mr-3 rounded bg-base-200">
+                      <DocumentIcon className="w-6 h-6 text-base-content/60" />
+                    </div>
+                  )}
+                  <div className="flex flex-col items-start text-left">
+                    <span className="text-sm truncate max-w-[180px]">
+                      {attachment.name}
+                    </span>
+                    <span className="text-xs text-base-content/60">
+                      {getFileExtension(attachment.name)}
+                    </span>
                   </div>
-                  <span className="text-sm font-medium text-primary group-hover/reply:text-primary/80">
-                    {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
-                    {lastReplyDate && (
-                      <span className="ml-1 font-normal text-base-content/60">
-                        • Last reply {getLastReplyText(lastReplyDate)}
-                      </span>
-                    )}
-                  </span>
                 </button>
-              )}
+              ))}
             </div>
+          )}
+
+          {/* Reactions and Thread */}
+          <div className="flex flex-col gap-1 mt-1">
+            {message.reactions?.length > 0 && (
+              <div className="flex gap-1">
+                {message.reactions.map((reaction, index) => {
+                  const reactedUsers = reaction.users
+                    .map((id) => users.find((u) => u.id === id)?.username)
+                    .filter(Boolean) as string[];
+
+                  let tooltipText = '';
+                  if (reactedUsers.length <= 3) {
+                    tooltipText =
+                      reactedUsers.length === 2
+                        ? `**${reactedUsers[0]}** and **${reactedUsers[1]}** reacted with ${reaction.emoji}`
+                        : `**${reactedUsers.join('**, **')}** reacted with ${
+                            reaction.emoji
+                          }`;
+                  } else {
+                    tooltipText = `**${reactedUsers
+                      .slice(0, 2)
+                      .join('**, **')}**, and ${
+                      reactedUsers.length - 2
+                    } others reacted with ${reaction.emoji}`;
+                  }
+
+                  const hasReacted = reaction.users.includes(session?.id);
+
+                  return (
+                    <TooltipPortal
+                      key={index}
+                      text={tooltipText}
+                      previewEmoji={reaction.emoji}
+                      maxWidth={200}
+                      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-sm cursor-pointer ${
+                        hasReacted
+                          ? 'bg-primary/10 hover:bg-primary/20 border border-primary/30'
+                          : 'bg-base-300/70 hover:border-base-content/20 border border-transparent'
+                      }`}
+                    >
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onReaction({ native: reaction.emoji }, message.id);
+                        }}
+                        className="flex items-center gap-1.5"
+                      >
+                        <span className="text-base">{reaction.emoji}</span>
+                        <span
+                          className={`text-xs ${
+                            hasReacted ? 'text-primary' : ''
+                          }`}
+                        >
+                          {reaction.users.length}
+                        </span>
+                      </div>
+                    </TooltipPortal>
+                  );
+                })}
+              </div>
+            )}
+            {showThread && replyCount > 0 && (
+              <button
+                onClick={() => onThreadSelect?.(message)}
+                className="flex items-center self-start gap-2 group/reply"
+              >
+                <div className="flex -space-x-1">
+                  {repliers.map((replier) => (
+                    <div
+                      key={replier.id}
+                      className="w-5 h-5 overflow-hidden border rounded-md border-base-100"
+                    >
+                      <img
+                        src={replier.imageUrl}
+                        alt={replier.username}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <span className="text-sm font-medium text-primary group-hover/reply:text-primary/80">
+                  {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
+                  {lastReplyDate && (
+                    <span className="ml-1 font-normal text-base-content/60">
+                      • Last reply {getLastReplyText(lastReplyDate)}
+                    </span>
+                  )}
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -324,46 +359,6 @@ const Message = ({
               skinTonePosition="preview"
             />
           </div>
-        </div>
-      )}
-
-      {message.attachments && message.attachments.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2">
-          {message.attachments.map((attachment, index) => (
-            <button
-              key={index}
-              onClick={() => setSelectedAttachment(attachment)}
-              className="flex items-center p-2 transition-colors border rounded-lg group/attachment hover:bg-base-200 border-base-300"
-            >
-              {isImageFile(attachment.type) ? (
-                <div className="relative w-12 h-12 mr-3 overflow-hidden rounded">
-                  <img
-                    src={attachment.url}
-                    alt={attachment.name}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              ) : isVideoFile(attachment.type) ? (
-                <div className="relative w-12 h-12 mr-3 overflow-hidden rounded">
-                  <div className="absolute inset-0 flex items-center justify-center bg-base-300">
-                    <FilmIcon className="w-6 h-6 text-base-content/60" />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center w-12 h-12 mr-3 rounded bg-base-200">
-                  <DocumentIcon className="w-6 h-6 text-base-content/60" />
-                </div>
-              )}
-              <div className="flex flex-col items-start text-left">
-                <span className="text-sm truncate max-w-[180px]">
-                  {attachment.name}
-                </span>
-                <span className="text-xs text-base-content/60">
-                  {getFileExtension(attachment.name)}
-                </span>
-              </div>
-            </button>
-          ))}
         </div>
       )}
 
