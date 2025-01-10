@@ -6,6 +6,7 @@ import MessageInput from './MessageInput';
 import TooltipPortal from '../TooltipPortal/TooltipPortal';
 import { useUsersStore } from '../../store';
 import { useSessionStore } from '../../store';
+import UserAvatar from '../UserAvatar/UserAvatar';
 
 const ChatArea = () => {
   const { currentConversation, setCurrentConversation, leaveConversation } =
@@ -28,20 +29,27 @@ const ChatArea = () => {
     };
   }, []);
 
-  const getConversationTitle = () => {
-    if (!currentConversation || !session) return '';
+  const getConversationHeader = () => {
+    if (!currentConversation || !session) return null;
 
     if (currentConversation.is_channel) {
-      return `# ${currentConversation.name}`;
+      return (
+        <h2 className="text-xl font-semibold"># {currentConversation.name}</h2>
+      );
     }
 
-    // For DMs, show other members' usernames
-    const otherMembers = currentConversation.conversation_members
-      .filter((m) => m.user_id !== session.id)
-      .map((m) => users.find((u) => u.id === m.user_id)?.username)
-      .filter(Boolean);
+    const otherUser = users.find((u) =>
+      currentConversation.conversation_members.some(
+        (m) => m.user_id === u.id && m.user_id !== session.id
+      )
+    );
 
-    return otherMembers.join(', ');
+    return (
+      <div className="flex items-center gap-2">
+        <UserAvatar user={otherUser} size="medium" />
+        <h2 className="text-xl font-semibold">{otherUser?.username}</h2>
+      </div>
+    );
   };
 
   if (!currentConversation) {
@@ -71,7 +79,7 @@ const ChatArea = () => {
       }`}
     >
       <div className="flex items-center justify-between p-4 border-b border-base-300">
-        <h2 className="text-xl font-semibold">{getConversationTitle()}</h2>
+        {getConversationHeader()}
         {currentConversation.is_channel && (
           <div className="relative pointer-events-auto" ref={menuRef}>
             <button

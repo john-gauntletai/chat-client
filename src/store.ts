@@ -44,16 +44,32 @@ export const useSessionStore = create((set) => ({
 
 export const useUsersStore = create<{
   users: User[];
+  userStatuses: Record<string, string>;  // userId -> status
   fetch: () => Promise<void>;
+  fetchStatuses: () => Promise<void>;
+  updateStatus: (userId: string, status: string) => void;
 }>((set, get) => ({
-  users: [],        
+  users: [],
+  userStatuses: {},
   fetch: async () => {
     const response = await makeRequest(`${SERVER_API_HOST}/api/users`);
     const json = await response.json();
-    set({ users: json.users});
+    set({ users: json.users });
+  },
+  fetchStatuses: async () => {
+    const response = await makeRequest(`${SERVER_API_HOST}/api/users/statuses`);
+    const json = await response.json();
+    const statusMap = json.statuses.reduce((acc: Record<string, string>, curr: any) => {
+      acc[curr.user_id] = curr.status;
+      return acc;
+    }, {});
+    set({ userStatuses: statusMap });
   },
   addUser: (data: { user: User }) => {
     set({ users: [...get().users, data.user] });
+  },
+  updateStatus: (userId: string, status: string) => {
+    set({ userStatuses: { ...get().userStatuses, [userId]: status } });
   }
 }))
 

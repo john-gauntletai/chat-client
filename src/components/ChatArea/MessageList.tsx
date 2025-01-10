@@ -13,6 +13,8 @@ import {
   EllipsisHorizontalIcon,
 } from '@heroicons/react/24/outline';
 import TooltipPortal from '../TooltipPortal/TooltipPortal';
+import MessageAvatar from '../MessageAvatar/MessageAvatar';
+import UserAvatar from '../UserAvatar/UserAvatar';
 
 const MessageList = ({ conversationId }: { conversationId: string }) => {
   const { messages, addReaction, fetchConversationMessages } =
@@ -30,6 +32,15 @@ const MessageList = ({ conversationId }: { conversationId: string }) => {
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   const creator = users.find((u) => u.id === currentConversation?.created_by);
+
+  const otherUser =
+    currentConversation && session && !currentConversation.is_channel
+      ? users.find((u) =>
+          currentConversation.conversation_members.some(
+            (m) => m.user_id === u.id && m.user_id !== session.id
+          )
+        )
+      : null;
 
   // Fetch messages when conversation changes
   useEffect(() => {
@@ -182,16 +193,8 @@ const MessageList = ({ conversationId }: { conversationId: string }) => {
                   }}
                 >
                   <div className="flex items-start gap-2">
-                    <div className="pt-1 avatar">
-                      {user?.imageUrl ? (
-                        <div className="rounded-md w-9">
-                          <img src={user.imageUrl} alt={user.username} />
-                        </div>
-                      ) : (
-                        <div className="rounded-md w-9 bg-neutral text-neutral-content">
-                          <span className="text-xs">{initials}</span>
-                        </div>
-                      )}
+                    <div className="pt-1">
+                      <MessageAvatar user={user} />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-baseline gap-2">
@@ -374,7 +377,7 @@ const MessageList = ({ conversationId }: { conversationId: string }) => {
         </div>
       ))}
 
-      {currentConversation?.is_channel && (
+      {currentConversation?.is_channel ? (
         <div className="mt-16 mb-8">
           <h1 className="mb-2 text-4xl font-bold">
             # {currentConversation.name}
@@ -386,6 +389,17 @@ const MessageList = ({ conversationId }: { conversationId: string }) => {
               { month: 'long', day: 'numeric', year: 'numeric' }
             )}
             . This is the beginning of the conversation.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-16 mb-8">
+          <div className="flex items-center gap-4 mb-4">
+            <UserAvatar user={otherUser} size="large" />
+            <h1 className="text-4xl font-bold">{otherUser?.username}</h1>
+          </div>
+          <p className="text-base-content/60">
+            This conversation is just between you and {otherUser?.username}.
+            This is the beginning of your direct message history.
           </p>
         </div>
       )}

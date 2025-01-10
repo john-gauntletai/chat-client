@@ -11,7 +11,12 @@ import ChatArea from '../ChatArea/ChatArea';
 
 const UiWrapper = () => {
   const { session, fetch: fetchSession } = useSessionStore();
-  const { fetch: fetchUsers, addUser } = useUsersStore();
+  const {
+    fetch: fetchUsers,
+    addUser,
+    fetchStatuses,
+    updateStatus,
+  } = useUsersStore();
   const {
     conversations,
     fetch: fetchConversations,
@@ -29,14 +34,26 @@ const UiWrapper = () => {
     fetchSession();
     fetchUsers();
     fetchConversations();
+    fetchStatuses();
 
     globalChannel.bind('user:created', (user) => {
       addUser(user);
     });
 
+    // Listen for status changes
+    const presenceChannel = pusher.subscribe('presence');
+    presenceChannel.bind(
+      'user:status_changed',
+      (data: { user_id: string; status: string }) => {
+        updateStatus(data.user_id, data.status);
+      }
+    );
+
     // Cleanup
     return () => {
       globalChannel.unbind('user:created');
+      presenceChannel.unbind('user:status_changed');
+      pusher.unsubscribe('presence');
     };
   }, []);
 

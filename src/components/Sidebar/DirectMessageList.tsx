@@ -1,19 +1,16 @@
+import { useState } from 'react';
 import {
   useSessionStore,
   useUsersStore,
   useConversationsStore,
 } from '../../store';
+import UserAvatar from '../UserAvatar/UserAvatar';
 
 const DirectMessageList = () => {
   const { users } = useUsersStore();
   const { session } = useSessionStore();
-  const {
-    conversations,
-    currentConversation,
-    setCurrentConversation,
-    create,
-    joinConversation,
-  } = useConversationsStore();
+  const { conversations, currentConversation, setCurrentConversation, create } =
+    useConversationsStore();
 
   const handleUserClick = async (userId: string) => {
     // Find existing DM conversation
@@ -68,19 +65,7 @@ const DirectMessageList = () => {
                 }`}
                 onClick={() => handleUserClick(user.id)}
               >
-                <div className="avatar">
-                  {user.imageUrl ? (
-                    <div className="w-6 rounded-md">
-                      <img src={user.imageUrl} alt={user.username} />
-                    </div>
-                  ) : (
-                    <div className="w-6 rounded-md bg-neutral-focus text-neutral-content">
-                      <span className="text-xs">
-                        {user.username.slice(0, 2).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <UserAvatar user={user} size="small" />
                 {user.username}
               </a>
             </li>
