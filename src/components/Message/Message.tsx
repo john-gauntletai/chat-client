@@ -1,4 +1,4 @@
-import { useUsersStore, useSessionStore } from '../../store';
+import { useUsersStore, useSessionStore, useMessagesStore } from '../../store';
 import MessageAvatar from '../MessageAvatar/MessageAvatar';
 import {
   FaceSmileIcon,
@@ -35,9 +35,55 @@ const Message = ({
   emojiPickerRef,
   emojiPickerPosition,
 }: Props) => {
+  const { messages } = useMessagesStore();
   const { users } = useUsersStore();
   const { session } = useSessionStore();
   const user = users.find((u) => u.id === message.created_by);
+
+  const replies = messages.filter(
+    (msg) => msg.parent_message_id === message.id
+  );
+  const replyCount = replies.length;
+
+  // Get unique repliers (up to 4)
+  const repliers = replies
+    .map((reply) => users.find((u) => u.id === reply.created_by))
+    .filter((user): user is User => !!user)
+    .filter(
+      (user, index, self) => index === self.findIndex((u) => u.id === user.id)
+    )
+    .slice(0, 4);
+
+  // Get last reply timestamp
+  const lastReplyDate =
+    replies.length > 0
+      ? new Date(
+          Math.max(...replies.map((r) => new Date(r.created_at).getTime()))
+        )
+      : null;
+
+  const getLastReplyText = (date: Date) => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const time = date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    if (date.toDateString() === today.toDateString()) {
+      return `today at ${time}`;
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return `yesterday at ${time}`;
+    } else {
+      return `${date.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+      })} at ${time}`;
+    }
+  };
 
   const formatTimestamp = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString('en-US', {
@@ -93,64 +139,95 @@ const Message = ({
           </div>
           <div className="relative">
             <div>{message.content}</div>
-            {message.reactions?.length > 0 && (
-              <div className="flex gap-1 mt-1">
-                {message.reactions.map((reaction, index) => {
-                  const reactedUsers = reaction.users
-                    .map((id) => users.find((u) => u.id === id)?.username)
-                    .filter(Boolean) as string[];
+            <div className="flex flex-col gap-1 mt-1">
+              {message.reactions?.length > 0 && (
+                <div className="flex gap-1">
+                  {message.reactions.map((reaction, index) => {
+                    const reactedUsers = reaction.users
+                      .map((id) => users.find((u) => u.id === id)?.username)
+                      .filter(Boolean) as string[];
 
-                  let tooltipText = '';
-                  if (reactedUsers.length <= 3) {
-                    tooltipText =
-                      reactedUsers.length === 2
-                        ? `**${reactedUsers[0]}** and **${reactedUsers[1]}** reacted with ${reaction.emoji}`
-                        : `**${reactedUsers.join('**, **')}** reacted with ${
-                            reaction.emoji
-                          }`;
-                  } else {
-                    tooltipText = `**${reactedUsers
-                      .slice(0, 2)
-                      .join('**, **')}**, and ${
-                      reactedUsers.length - 2
-                    } others reacted with ${reaction.emoji}`;
-                  }
+                    let tooltipText = '';
+                    if (reactedUsers.length <= 3) {
+                      tooltipText =
+                        reactedUsers.length === 2
+                          ? `**${reactedUsers[0]}** and **${reactedUsers[1]}** reacted with ${reaction.emoji}`
+                          : `**${reactedUsers.join('**, **')}** reacted with ${
+                              reaction.emoji
+                            }`;
+                    } else {
+                      tooltipText = `**${reactedUsers
+                        .slice(0, 2)
+                        .join('**, **')}**, and ${
+                        reactedUsers.length - 2
+                      } others reacted with ${reaction.emoji}`;
+                    }
 
-                  const hasReacted = reaction.users.includes(session?.id);
+                    const hasReacted = reaction.users.includes(session?.id);
 
-                  return (
-                    <TooltipPortal
-                      key={index}
-                      text={tooltipText}
-                      previewEmoji={reaction.emoji}
-                      maxWidth={200}
-                      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-sm cursor-pointer ${
-                        hasReacted
-                          ? 'bg-primary/10 hover:bg-primary/20 border border-primary/30'
-                          : 'bg-base-300/70 hover:border-base-content/20 border border-transparent'
-                      }`}
-                    >
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onReaction({ native: reaction.emoji }, message.id);
-                        }}
-                        className="flex items-center gap-1.5"
+                    return (
+                      <TooltipPortal
+                        key={index}
+                        text={tooltipText}
+                        previewEmoji={reaction.emoji}
+                        maxWidth={200}
+                        className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-sm cursor-pointer ${
+                          hasReacted
+                            ? 'bg-primary/10 hover:bg-primary/20 border border-primary/30'
+                            : 'bg-base-300/70 hover:border-base-content/20 border border-transparent'
+                        }`}
                       >
-                        <span className="text-base">{reaction.emoji}</span>
-                        <span
-                          className={`text-xs ${
-                            hasReacted ? 'text-primary' : ''
-                          }`}
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onReaction({ native: reaction.emoji }, message.id);
+                          }}
+                          className="flex items-center gap-1.5"
                         >
-                          {reaction.users.length}
-                        </span>
+                          <span className="text-base">{reaction.emoji}</span>
+                          <span
+                            className={`text-xs ${
+                              hasReacted ? 'text-primary' : ''
+                            }`}
+                          >
+                            {reaction.users.length}
+                          </span>
+                        </div>
+                      </TooltipPortal>
+                    );
+                  })}
+                </div>
+              )}
+              {showThread && replyCount > 0 && (
+                <button
+                  onClick={() => onThreadSelect?.(message)}
+                  className="flex items-center self-start gap-2 group/reply rounded-md hover:bg-base-100 hover:shadow-[0_0_0_1px_rgba(0,0,0,0.1),0_1px_3px_0_rgba(0,0,0,0.1)] px-2 py-1 -ml-2"
+                >
+                  <div className="flex -space-x-1">
+                    {repliers.map((replier) => (
+                      <div
+                        key={replier.id}
+                        className="w-5 h-5 overflow-hidden border rounded-md border-base-100"
+                      >
+                        <img
+                          src={replier.imageUrl}
+                          alt={replier.username}
+                          className="object-cover w-full h-full"
+                        />
                       </div>
-                    </TooltipPortal>
-                  );
-                })}
-              </div>
-            )}
+                    ))}
+                  </div>
+                  <span className="text-sm font-medium text-primary group-hover/reply:text-primary/80">
+                    {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
+                    {lastReplyDate && (
+                      <span className="ml-1 font-normal text-base-content/60">
+                        • Last reply {getLastReplyText(lastReplyDate)}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
