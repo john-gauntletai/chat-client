@@ -6,11 +6,12 @@ import {
   ChatBubbleLeftIcon,
   EllipsisHorizontalIcon,
   DocumentIcon,
-  PhotoIcon,
   FilmIcon,
 } from '@heroicons/react/24/outline';
 import TooltipPortal from '../TooltipPortal/TooltipPortal';
 import { Message as MessageType } from '../../types';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 
 interface Props {
   message: MessageType;
@@ -134,8 +135,8 @@ const Message = ({
   };
 
   return (
-    <div className="relative flex gap-2 px-4 py-2 group hover:bg-base-200/50">
-      <div className="pt-1">
+    <div className="relative flex gap-2 px-4 py-1.5 group hover:bg-base-200/50">
+      <div className="pt-0.5">
         <MessageAvatar user={user} />
       </div>
       <div className="flex-1">
@@ -160,7 +161,7 @@ const Message = ({
                 <button
                   key={index}
                   onClick={() => setSelectedAttachment(attachment)}
-                  className="flex items-center p-2 transition-colors border rounded-lg group/attachment hover:bg-base-200 border-base-300"
+                  className="flex items-center p-2 transition-colors border rounded-lg group/attachment hover:border-base-300 bg-base-100 border-base-200"
                 >
                   {isImageFile(attachment.type) ? (
                     <div className="relative w-12 h-12 mr-3 overflow-hidden rounded">
