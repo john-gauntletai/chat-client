@@ -7,6 +7,14 @@ interface MessageReaction {
   users: string[]; // array of user IDs
 }
 
+interface Attachment {
+  url: string;
+  type: string;
+  name: string;
+  size: number;
+  s3Key: string;
+}
+
 interface Message {
   id: string;
   content: string;
@@ -197,12 +205,12 @@ export const useMessagesStore = create<{
     );
     set({ messages: [...otherMessages, ...messages] });
   },
-  create: async (conversationId: string, content: string, parentMessageId?: string) => {
+  create: async (conversationId: string, content: string, parentMessageId?: string, attachments: Attachment[] = []) => {
     const response = await makeRequest(
       `${SERVER_API_HOST}/api/messages`, 
       {
         method: 'POST',
-        body: JSON.stringify({ conversationId, content, parentMessageId })
+        body: JSON.stringify({ conversationId, content, parentMessageId, attachments })
       }
     );
     const json = await response.json();
@@ -236,7 +244,7 @@ export const useMessagesStore = create<{
   }
 }))
 
-async function makeRequest(url: string, options?: RequestInit) {
+export const makeRequest = async function (url: string, options?: RequestInit) {
     const token = await window.Clerk.session.getToken();
     if (!token) {
        return window.location.reload();

@@ -4,6 +4,7 @@ import {
   useConversationsStore,
   useUsersStore,
   useSessionStore,
+  makeRequest,
 } from '../../store';
 import {
   PaperAirplaneIcon,
@@ -119,7 +120,7 @@ const MessageInput = ({
 
   const uploadToS3 = async (file: File) => {
     // First, get a pre-signed URL from your server
-    const response = await fetch(
+    const response = await makeRequest(
       import.meta.env.VITE_SERVER_API_HOST + '/api/get-upload-url',
       {
         method: 'POST',
@@ -131,8 +132,7 @@ const MessageInput = ({
       }
     );
 
-    const { uploadUrl, fileUrl } = await response.json();
-
+    const { uploadUrl, fileUrl, s3Key } = await response.json();
     // Upload directly to S3 using the pre-signed URL
     await fetch(uploadUrl, {
       method: 'PUT',
@@ -147,6 +147,7 @@ const MessageInput = ({
       type: file.type,
       name: file.name,
       size: file.size,
+      s3Key,
     };
   };
 
@@ -166,6 +167,13 @@ const MessageInput = ({
 
       setContent('');
       setFiles([]);
+      // Clear file previews and revoke object URLs
+      filePreviews.forEach((preview) => {
+        if (preview.previewUrl) {
+          URL.revokeObjectURL(preview.previewUrl);
+        }
+      });
+      setFilePreviews([]);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }

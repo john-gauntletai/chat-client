@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { useUsersStore, useSessionStore, useMessagesStore } from '../../store';
 import MessageAvatar from '../MessageAvatar/MessageAvatar';
 import {
   FaceSmileIcon,
   ChatBubbleLeftIcon,
   EllipsisHorizontalIcon,
+  DocumentIcon,
+  PhotoIcon,
+  FilmIcon,
 } from '@heroicons/react/24/outline';
 import TooltipPortal from '../TooltipPortal/TooltipPortal';
 import { Message as MessageType } from '../../types';
@@ -111,6 +115,22 @@ const Message = ({
           date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
       });
     }
+  };
+
+  const [selectedAttachment, setSelectedAttachment] = useState<
+    MessageType['attachments'][0] | null
+  >(null);
+
+  const getFileExtension = (filename: string) => {
+    return filename.split('.').pop()?.toUpperCase() || '';
+  };
+
+  const isImageFile = (type: string) => {
+    return type.startsWith('image/');
+  };
+
+  const isVideoFile = (type: string) => {
+    return type.startsWith('video/');
   };
 
   return (
@@ -303,6 +323,87 @@ const Message = ({
               previewPosition="bottom"
               skinTonePosition="preview"
             />
+          </div>
+        </div>
+      )}
+
+      {message.attachments && message.attachments.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {message.attachments.map((attachment, index) => (
+            <button
+              key={index}
+              onClick={() => setSelectedAttachment(attachment)}
+              className="flex items-center p-2 transition-colors border rounded-lg group/attachment hover:bg-base-200 border-base-300"
+            >
+              {isImageFile(attachment.type) ? (
+                <div className="relative w-12 h-12 mr-3 overflow-hidden rounded">
+                  <img
+                    src={attachment.url}
+                    alt={attachment.name}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+              ) : isVideoFile(attachment.type) ? (
+                <div className="relative w-12 h-12 mr-3 overflow-hidden rounded">
+                  <div className="absolute inset-0 flex items-center justify-center bg-base-300">
+                    <FilmIcon className="w-6 h-6 text-base-content/60" />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center w-12 h-12 mr-3 rounded bg-base-200">
+                  <DocumentIcon className="w-6 h-6 text-base-content/60" />
+                </div>
+              )}
+              <div className="flex flex-col items-start text-left">
+                <span className="text-sm truncate max-w-[180px]">
+                  {attachment.name}
+                </span>
+                <span className="text-xs text-base-content/60">
+                  {getFileExtension(attachment.name)}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {selectedAttachment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="relative max-w-4xl p-4 mx-4 rounded-lg bg-base-100">
+            <button
+              onClick={() => setSelectedAttachment(null)}
+              className="absolute p-2 rounded-full -top-3 -right-3 bg-base-300 hover:bg-base-200"
+            >
+              <span className="text-lg">×</span>
+            </button>
+
+            {isImageFile(selectedAttachment.type) ? (
+              <img
+                src={selectedAttachment.url}
+                alt={selectedAttachment.name}
+                className="max-h-[80vh] rounded-lg"
+              />
+            ) : isVideoFile(selectedAttachment.type) ? (
+              <video
+                src={selectedAttachment.url}
+                controls
+                className="max-h-[80vh] rounded-lg"
+              />
+            ) : (
+              <div className="flex flex-col items-center p-8">
+                <DocumentIcon className="w-16 h-16 mb-4 text-base-content/60" />
+                <span className="text-lg font-medium">
+                  {selectedAttachment.name}
+                </span>
+                <a
+                  href={selectedAttachment.url}
+                  download
+                  className="mt-4 btn btn-primary"
+                >
+                  Download File
+                </a>
+              </div>
+            )}
           </div>
         </div>
       )}
