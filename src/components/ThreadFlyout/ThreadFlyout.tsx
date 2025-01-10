@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useMessagesStore, useUsersStore } from '../../store';
 import MessageInput from '../ChatArea/MessageInput';
 import Message from '../Message/Message';
@@ -19,6 +19,24 @@ const ThreadFlyout = ({ parentMessage, onClose }: Props) => {
     left: 0,
   });
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        threadRef.current &&
+        !threadRef.current.contains(event.target as Node) &&
+        !emojiPickerRef.current?.contains(event.target as Node)
+      ) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
 
   const replies = messages.filter(
     (msg) => msg.parent_message_id === parentMessage.id
@@ -68,7 +86,10 @@ const ThreadFlyout = ({ parentMessage, onClose }: Props) => {
   };
 
   return (
-    <div className="flex flex-col w-96 h-full border-l border-base-300 bg-base-100 shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.4)]">
+    <div
+      ref={threadRef}
+      className="flex flex-col w-96 h-full border-l border-base-300 bg-base-100 shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.4)]"
+    >
       <div className="flex items-center justify-between p-4 shrink-0">
         <h2 className="text-lg font-semibold">Thread</h2>
         <button onClick={onClose} className="p-1 rounded hover:bg-base-200">
@@ -119,6 +140,7 @@ const ThreadFlyout = ({ parentMessage, onClose }: Props) => {
       <MessageInput
         conversationId={parentMessage.conversation_id}
         parentMessageId={parentMessage.id}
+        isThread={true}
       />
     </div>
   );
