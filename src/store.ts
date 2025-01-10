@@ -14,6 +14,7 @@ interface Message {
   created_at: string;
   created_by: string;
   reactions?: MessageReaction[];
+  parent_message_id: string;
 }
 
 interface User {
@@ -173,7 +174,7 @@ export const useMessagesStore = create<{
   messages: Message[];
   fetch: () => Promise<void>;
   fetchConversationMessages: (conversationId: string) => Promise<void>;
-  create: (conversationId: string, content: string) => Promise<Message>;
+  create: (conversationId: string, content: string, parentMessageId?: string) => Promise<Message>;
   addMessage: (data: { message: Message }) => void;
   updateMessage: (data: { message: Message }) => void;
   addReaction: (messageId: string, emoji: string) => Promise<void>;
@@ -196,12 +197,12 @@ export const useMessagesStore = create<{
     );
     set({ messages: [...otherMessages, ...messages] });
   },
-  create: async (conversationId: string, content: string) => {
+  create: async (conversationId: string, content: string, parentMessageId?: string) => {
     const response = await makeRequest(
       `${SERVER_API_HOST}/api/messages`, 
       {
         method: 'POST',
-        body: JSON.stringify({ conversationId, content })
+        body: JSON.stringify({ conversationId, content, parentMessageId })
       }
     );
     const json = await response.json();

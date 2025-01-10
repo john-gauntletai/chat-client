@@ -16,7 +16,17 @@ import TooltipPortal from '../TooltipPortal/TooltipPortal';
 import MessageAvatar from '../MessageAvatar/MessageAvatar';
 import UserAvatar from '../UserAvatar/UserAvatar';
 
-const MessageList = ({ conversationId }: { conversationId: string }) => {
+interface Props {
+  conversationId: string;
+  onThreadSelect: (message: Message | null) => void;
+  activeThread: Message | null;
+}
+
+const MessageList = ({
+  conversationId,
+  onThreadSelect,
+  activeThread,
+}: Props) => {
   const { messages, addReaction, fetchConversationMessages } =
     useMessagesStore();
   const { users } = useUsersStore();
@@ -334,7 +344,10 @@ const MessageList = ({ conversationId }: { conversationId: string }) => {
                         text="Reply in thread"
                         className="flex items-center gap-1 p-1.5 rounded hover:bg-base-200"
                       >
-                        <button className="flex items-center gap-1">
+                        <button
+                          className="flex items-center gap-1"
+                          onClick={() => onThreadSelect(message)}
+                        >
                           <ChatBubbleLeftIcon className="w-3.5 h-3.5" />
                           <span className="text-xs font-medium">Reply</span>
                         </button>

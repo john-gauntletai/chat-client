@@ -6,7 +6,12 @@ import {
   useSessionStore,
 } from '../../store';
 
-const MessageInput = ({ conversationId }: { conversationId: string }) => {
+interface Props {
+  conversationId: string;
+  parentMessageId?: string;
+}
+
+const MessageInput = ({ conversationId, parentMessageId }: Props) => {
   const { create } = useMessagesStore();
   const { currentConversation } = useConversationsStore();
   const { users } = useUsersStore();
@@ -34,7 +39,7 @@ const MessageInput = ({ conversationId }: { conversationId: string }) => {
     if (!content.trim()) return;
 
     try {
-      await create(conversationId, content);
+      const message = await create(conversationId, content, parentMessageId);
       setContent('');
     } catch (error) {
       console.error('Failed to send message:', error);
