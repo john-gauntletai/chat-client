@@ -7,12 +7,12 @@ const LandingPage = () => {
       <div className="relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,transparent)] bg-top"></div>
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-96 bg-gradient-to-br from-violet-400/30 to-purple-400/30 blur-3xl"></div>
+        <div className="absolute top-0 w-full -translate-x-1/2 left-1/2 h-96 bg-gradient-to-br from-violet-400/30 to-purple-400/30 blur-3xl"></div>
 
         {/* Navigation */}
-        <nav className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <nav className="relative z-10 px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
+            <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">
               FlowAI Chat
             </div>
             <div className="flex gap-4">
@@ -24,33 +24,39 @@ const LandingPage = () => {
         </nav>
 
         {/* Hero Content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-32">
+        <div className="relative z-10 px-4 pt-20 pb-32 mx-auto max-w-7xl sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-8">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
+            <h1 className="mb-8 text-5xl font-bold tracking-tight md:text-6xl">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">
                 Transform Your Team Communication
               </span>
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-12">
+            <p className="max-w-2xl mx-auto mb-12 text-xl text-gray-600">
               Experience the future of team collaboration with AI-powered
               insights, real-time messaging, and intelligent workflows designed
               for modern startups.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="btn btn-primary btn-lg">
-                Start Free Trial
-              </button>
-              <button className="btn btn-outline btn-lg">Schedule Demo</button>
+            <div className="flex flex-col justify-center gap-4 sm:flex-row">
+              <SignInButton mode="modal">
+                <button className="btn btn-primary btn-lg">
+                  Start Free Trial
+                </button>
+              </SignInButton>
+              <SignInButton mode="modal">
+                <button className="btn btn-outline btn-lg">
+                  Schedule Demo
+                </button>
+              </SignInButton>
             </div>
           </div>
         </div>
       </div>
 
       {/* Features Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="p-6 rounded-2xl bg-white/50 backdrop-blur-lg shadow-xl border border-gray-100">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+      <div className="px-4 py-24 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <div className="grid gap-8 md:grid-cols-3">
+          <div className="p-6 border border-gray-100 shadow-xl rounded-2xl bg-white/50 backdrop-blur-lg">
+            <div className="flex items-center justify-center w-12 h-12 mb-4 bg-purple-100 rounded-lg">
               <svg
                 className="w-6 h-6 text-purple-600"
                 fill="none"
@@ -65,15 +71,15 @@ const LandingPage = () => {
                 />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold mb-2">AI-Powered Insights</h3>
+            <h3 className="mb-2 text-xl font-semibold">AI-Powered Insights</h3>
             <p className="text-gray-600">
               Get intelligent suggestions and automate routine tasks with our
               advanced AI assistant.
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white/50 backdrop-blur-lg shadow-xl border border-gray-100">
-            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+          <div className="p-6 border border-gray-100 shadow-xl rounded-2xl bg-white/50 backdrop-blur-lg">
+            <div className="flex items-center justify-center w-12 h-12 mb-4 bg-indigo-100 rounded-lg">
               <svg
                 className="w-6 h-6 text-indigo-600"
                 fill="none"
@@ -88,7 +94,7 @@ const LandingPage = () => {
                 />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold mb-2">
+            <h3 className="mb-2 text-xl font-semibold">
               Real-time Collaboration
             </h3>
             <p className="text-gray-600">
@@ -97,8 +103,8 @@ const LandingPage = () => {
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white/50 backdrop-blur-lg shadow-xl border border-gray-100">
-            <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center mb-4">
+          <div className="p-6 border border-gray-100 shadow-xl rounded-2xl bg-white/50 backdrop-blur-lg">
+            <div className="flex items-center justify-center w-12 h-12 mb-4 bg-pink-100 rounded-lg">
               <svg
                 className="w-6 h-6 text-pink-600"
                 fill="none"
@@ -113,7 +119,7 @@ const LandingPage = () => {
                 />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold mb-2">Smart Workflows</h3>
+            <h3 className="mb-2 text-xl font-semibold">Smart Workflows</h3>
             <p className="text-gray-600">
               Streamline your processes with customizable workflows and
               integrations.
@@ -123,9 +129,9 @@ const LandingPage = () => {
       </div>
 
       {/* Social Proof */}
-      <div className="bg-white/70 backdrop-blur-lg py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-gray-600 mb-8">
+      <div className="py-24 bg-white/70 backdrop-blur-lg">
+        <div className="px-4 mx-auto text-center max-w-7xl sm:px-6 lg:px-8">
+          <p className="mb-8 text-gray-600">
             Trusted by innovative teams worldwide
           </p>
           <div className="flex flex-wrap justify-center gap-12 opacity-50">
@@ -139,11 +145,11 @@ const LandingPage = () => {
       </div>
 
       {/* CTA Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
-        <h2 className="text-4xl font-bold mb-8">
+      <div className="px-4 py-24 mx-auto text-center max-w-7xl sm:px-6 lg:px-8">
+        <h2 className="mb-8 text-4xl font-bold">
           Ready to transform your team communication?
         </h2>
-        <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
+        <p className="max-w-2xl mx-auto mb-12 text-xl text-gray-600">
           Join thousands of teams already using FlowAI Chat to streamline their
           communication and boost productivity.
         </p>
