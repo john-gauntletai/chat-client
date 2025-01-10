@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useMessagesStore, useUsersStore } from '../../store';
 import MessageInput from '../ChatArea/MessageInput';
+import Message from '../Message/Message';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import MessageView from '../MessageView/MessageView';
 
@@ -19,10 +20,10 @@ const ThreadFlyout = ({ parentMessage, onClose }: Props) => {
   });
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
-  const threadMessages = [
-    parentMessage,
-    ...messages.filter((msg) => msg.parent_message_id === parentMessage.id),
-  ].sort(
+  const replies = messages.filter(
+    (msg) => msg.parent_message_id === parentMessage.id
+  );
+  const threadMessages = [...replies].sort(
     (a, b) =>
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
@@ -67,16 +68,39 @@ const ThreadFlyout = ({ parentMessage, onClose }: Props) => {
   };
 
   return (
-    <div className="flex flex-col w-96 border-l border-base-300 bg-base-100 shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.4)]">
-      <div className="flex items-center justify-between p-4 border-b border-base-300">
+    <div className="flex flex-col w-96 h-full border-l border-base-300 bg-base-100 shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.4)]">
+      <div className="flex items-center justify-between p-4 shrink-0">
         <h2 className="text-lg font-semibold">Thread</h2>
         <button onClick={onClose} className="p-1 rounded hover:bg-base-200">
           <XMarkIcon className="w-5 h-5" />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="p-4">
+          <MessageView
+            messages={[parentMessage]}
+            showThread={false}
+            showDateSeparators={false}
+            onReaction={handleEmojiClick}
+            activeMessage={activeMessage}
+            showEmojiPicker={showEmojiPicker}
+            emojiPickerPosition={emojiPickerPosition}
+            onEmojiPickerOpen={handleEmojiPickerOpen}
+            onMessageHover={setActiveMessage}
+            emojiPickerRef={emojiPickerRef}
+          />
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-base-300" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="px-3 text-sm bg-base-100 text-base-content/60">
+                {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+              </span>
+            </div>
+          </div>
+
           <MessageView
             messages={threadMessages}
             showThread={false}
@@ -92,12 +116,10 @@ const ThreadFlyout = ({ parentMessage, onClose }: Props) => {
         </div>
       </div>
 
-      <div className="p-4 border-t border-base-300">
-        <MessageInput
-          conversationId={parentMessage.conversation_id}
-          parentMessageId={parentMessage.id}
-        />
-      </div>
+      <MessageInput
+        conversationId={parentMessage.conversation_id}
+        parentMessageId={parentMessage.id}
+      />
     </div>
   );
 };
