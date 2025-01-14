@@ -29,7 +29,7 @@ const MessageInput = ({
   parentMessageId,
   isThread = false,
 }: Props) => {
-  const { create } = useMessagesStore();
+  const { create, aiMessages } = useMessagesStore();
   const { currentConversation } = useConversationsStore();
   const { users } = useUsersStore();
   const { session } = useSessionStore();
@@ -39,6 +39,9 @@ const MessageInput = ({
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filePreviews, setFilePreviews] = useState<FilePreview[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingIndex, setTypingIndex] = useState(0);
+  const typingSpeedRef = useRef<number>(50); // ms per character
 
   const getPlaceholder = () => {
     if (isThread) {
@@ -163,7 +166,7 @@ const MessageInput = ({
         attachments = await Promise.all(files.map(uploadToS3));
       }
 
-      await create(conversationId, content, parentMessageId, attachments);
+      await create({ conversationId, content, parentMessageId, attachments });
 
       setContent('');
       setFiles([]);
@@ -183,6 +186,50 @@ const MessageInput = ({
       setIsUploading(false);
     }
   };
+
+  useEffect(() => {
+    const currentAIMessage = aiMessages.find(
+      (msg) =>
+        msg.conversation_id === conversationId &&
+        ((!msg.parent_message_id && !parentMessageId) ||
+          msg.parent_message_id === parentMessageId)
+    );
+
+    if (currentAIMessage?.content && !isTyping) {
+      setIsTyping(true);
+      setContent('');
+      setTypingIndex(0);
+    }
+  }, [aiMessages, conversationId, parentMessageId]);
+
+  useEffect(() => {
+    if (!isTyping) return;
+
+    const currentAIMessage = aiMessages.find(
+      (msg) =>
+        msg.conversation_id === conversationId &&
+        ((!msg.parent_message_id && !parentMessageId) ||
+          msg.parent_message_id === parentMessageId)
+    );
+
+    if (!currentAIMessage?.content) return;
+
+    if (typingIndex < currentAIMessage.content.length) {
+      const timeoutId = setTimeout(() => {
+        setContent((prev) => prev + currentAIMessage.content[typingIndex]);
+        setTypingIndex((prev) => prev + 1);
+
+        // Vary the typing speed slightly for more natural feel
+        typingSpeedRef.current = Math.random() * 10 + 15; // 15-25ms
+      }, typingSpeedRef.current);
+
+      return () => clearTimeout(timeoutId);
+    } else {
+      setIsTyping(false);
+      // Auto submit after typing is complete
+      handleSubmit(new Event('submit') as any);
+    }
+  }, [typingIndex, isTyping, aiMessages, conversationId, parentMessageId]);
 
   // Clean up previews on unmount
   useEffect(() => {
@@ -253,7 +300,7 @@ const MessageInput = ({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`flex items-center gap-2 ${
+        className={`flex items-start gap-2 ${
           isDragging ? 'bg-primary/5 rounded-lg' : ''
         }`}
       >
@@ -268,20 +315,29 @@ const MessageInput = ({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           className="p-3 rounded-md text-base-content/60 hover:text-primary hover:bg-base-200"
+          disabled={isTyping}
         >
           <PaperClipIcon className="w-5 h-5" />
         </button>
-        <input
-          type="text"
+        <textarea
           value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder={getPlaceholder()}
-          className="flex-1 input input-bordered"
-          disabled={isUploading}
+          onChange={(e) => !isTyping && setContent(e.target.value)}
+          placeholder={isTyping ? 'AI is typing...' : getPlaceholder()}
+          className="flex-1 min-h-[48px] max-h-32 py-3 px-4 textarea textarea-bordered resize-none overflow-auto text-[15px]"
+          disabled={isUploading || isTyping}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSubmit(e);
+            }
+          }}
+          rows={2}
         />
         <button
           type="submit"
-          disabled={(!content.trim() && files.length === 0) || isUploading}
+          disabled={
+            (!content.trim() && files.length === 0) || isUploading || isTyping
+          }
           className="h-12 px-4 transition-colors duration-200 rounded-md bg-primary/10 hover:bg-primary/20 disabled:bg-base-200 disabled:hover:bg-base-200"
         >
           <PaperAirplaneIcon

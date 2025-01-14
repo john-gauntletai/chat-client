@@ -10,7 +10,12 @@ import Sidebar from '../Sidebar/Sidebar';
 import ChatArea from '../ChatArea/ChatArea';
 
 const UiWrapper = () => {
-  const { session, fetch: fetchSession } = useSessionStore();
+  const {
+    session,
+    fetch: fetchSession,
+    userSettings,
+    fetchUserSettings,
+  } = useSessionStore();
   const {
     fetch: fetchUsers,
     addUser,
@@ -26,12 +31,14 @@ const UiWrapper = () => {
   const {
     messages,
     fetch: fetchMessages,
+    fetchAIMessage,
     addMessage,
     updateMessage,
   } = useMessagesStore();
 
   useEffect(() => {
     fetchSession();
+    fetchUserSettings();
     fetchUsers();
     fetchConversations();
     fetchStatuses();
@@ -91,6 +98,16 @@ const UiWrapper = () => {
 
       subscription.bind('message:created', (data) => {
         addMessage(data);
+        if (
+          userSettings?.full_self_chatting?.[conversation.id] &&
+          !data.message.conversations.is_channel &&
+          data.message.created_by !== session?.id
+        ) {
+          fetchAIMessage(
+            data.message.conversation_id,
+            data.message.parent_message_id
+          );
+        }
       });
 
       // Add this handler for message updates
