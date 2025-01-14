@@ -5,7 +5,6 @@ import {
   useSessionStore,
   useConversationsStore,
 } from '../../store';
-import data from '@emoji-mart/data';
 import UserAvatar from '../UserAvatar/UserAvatar';
 import MessageView from '../MessageView/MessageView';
 

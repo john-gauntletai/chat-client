@@ -1,5 +1,4 @@
 import Message from '../Message/Message';
-import data from '@emoji-mart/data';
 
 interface Props {
   messages: Message[];

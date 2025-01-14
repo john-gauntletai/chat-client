@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { useMessagesStore, useUsersStore } from '../../store';
+import { useMessagesStore } from '../../store';
 import MessageInput from '../ChatArea/MessageInput';
-import Message from '../Message/Message';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import MessageView from '../MessageView/MessageView';
 

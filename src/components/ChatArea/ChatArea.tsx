@@ -3,7 +3,6 @@ import { useConversationsStore } from '../../store';
 import { EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
-import TooltipPortal from '../TooltipPortal/TooltipPortal';
 import { useUsersStore } from '../../store';
 import { useSessionStore } from '../../store';
 import UserAvatar from '../UserAvatar/UserAvatar';
