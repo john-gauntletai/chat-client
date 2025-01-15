@@ -33,13 +33,13 @@ const ChatArea = () => {
   }, []);
 
   const toggleSelfChatting = async () => {
-    if (!currentConversation || !userSettings) return;
+    if (!currentConversation) return;
     const newSettings = {
       ...userSettings,
       full_self_chatting: {
-        ...userSettings.full_self_chatting,
+        ...userSettings?.full_self_chatting,
         [currentConversation.id]:
-          !userSettings.full_self_chatting?.[currentConversation.id],
+          !userSettings?.full_self_chatting?.[currentConversation.id],
       },
     };
 
@@ -91,7 +91,20 @@ const ChatArea = () => {
         </div>
         <div className="flex items-center gap-4">
           <label className="gap-2 cursor-pointer label">
-            <span className="text-sm">Full Self Chatting</span>
+            <span
+              className={`flex items-center gap-1 text-sm font-bold transition-all duration-300 ${
+                userSettings?.full_self_chatting?.[currentConversation.id]
+                  ? 'text-transparent bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text bg-[length:200%_100%] animate-gradient'
+                  : 'text-base-content/40 hover:text-base-content/60'
+              }`}
+            >
+              Full Self Chatting
+              <span className="text-xs">
+                {userSettings?.full_self_chatting?.[currentConversation.id]
+                  ? '🚀'
+                  : '🛸'}
+              </span>
+            </span>
             <input
               type="checkbox"
               className="toggle toggle-primary toggle-sm"

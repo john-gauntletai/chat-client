@@ -274,26 +274,31 @@ export const useMessagesStore = create<{
     set({ messages: [...otherMessages, ...messages] });
   },
   fetchAIMessage: async (conversationId: string, parentMessageId?: string) => {
-    const response = await makeRequest(`${SERVER_API_HOST}/api/messages/ai`, {
-      method: 'POST',
-      body: JSON.stringify({ conversationId, parentMessageId }),
-    });
-    const json = await response.json();
-    const existingMessageIndex = get().aiMessages.findIndex(
-      (msg) =>
-        msg.conversation_id === json.message.conversation_id &&
-        ((!msg.parent_message_id && !json.message.parent_message_id) ||
-          msg.parent_message_id === json.message.parent_message_id)
-    );
+    try {
+      const response = await makeRequest(`${SERVER_API_HOST}/api/messages/ai`, {
+        method: 'POST',
+        body: JSON.stringify({ conversationId, parentMessageId }),
+      });
+      const json = await response.json();
+      if (!json.message) return;
+      const existingMessageIndex = get().aiMessages.findIndex(
+        (msg) =>
+          msg.conversation_id === json.message.conversation_id &&
+          ((!msg.parent_message_id && !json.message.parent_message_id) ||
+            msg.parent_message_id === json.message.parent_message_id)
+      );
 
-    if (existingMessageIndex !== -1) {
-      // Replace existing message
-      const newMessages = [...get().aiMessages];
-      newMessages[existingMessageIndex] = json.message;
-      set({ aiMessages: newMessages });
-    } else {
-      // Add new message
-      set({ aiMessages: [...get().aiMessages, json.message] });
+      if (existingMessageIndex !== -1) {
+        // Replace existing message
+        const newMessages = [...get().aiMessages];
+        newMessages[existingMessageIndex] = json.message;
+        set({ aiMessages: newMessages });
+      } else {
+        // Add new message
+        set({ aiMessages: [...get().aiMessages, json.message] });
+      }
+    } catch (error) {
+      console.error('Error fetching AI message:', error);
     }
   },
   create: async (createMessageParams: CreateMessageParams) => {

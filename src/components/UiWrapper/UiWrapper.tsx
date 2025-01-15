@@ -24,6 +24,7 @@ const UiWrapper = () => {
   } = useUsersStore();
   const {
     conversations,
+    currentConversation,
     fetch: fetchConversations,
     addConversation,
     updateConversation,
@@ -98,10 +99,24 @@ const UiWrapper = () => {
 
       subscription.bind('message:created', (data) => {
         addMessage(data);
+        console.log(currentConversation);
+        const isSameConversation =
+          data.message.conversation_id === Number(currentConversation?.id);
+        const isFullSelfChatting =
+          userSettings?.full_self_chatting?.[data.message.conversation_id];
+        const isNotChannel = !currentConversation?.is_channel;
+        const isNotSelf = data.message.created_by !== session?.id;
+        console.log(
+          isFullSelfChatting,
+          isSameConversation,
+          isNotChannel,
+          isNotSelf
+        );
         if (
-          userSettings?.full_self_chatting?.[conversation.id] &&
-          !data.message.conversations.is_channel &&
-          data.message.created_by !== session?.id
+          isSameConversation &&
+          isFullSelfChatting &&
+          isNotChannel &&
+          isNotSelf
         ) {
           fetchAIMessage(
             data.message.conversation_id,
