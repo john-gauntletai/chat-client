@@ -252,6 +252,7 @@ export const useMessagesStore = create<{
   create: (createMessageParams: CreateMessageParams) => Promise<Message>;
   addMessage: (data: { message: Message }) => void;
   updateMessage: (data: { message: Message }) => void;
+  removeAIMessage: (conversationId: string, parentMessageId?: string) => void;
   addReaction: (messageId: string, emoji: string) => Promise<void>;
 }>((set, get) => ({
   messages: [],
@@ -322,6 +323,15 @@ export const useMessagesStore = create<{
       msg.id === data.message.id ? data.message : msg
     );
     set({ messages });
+  },
+  removeAIMessage: (conversationId: string, parentMessageId?: string) => {
+    set({
+      aiMessages: get().aiMessages.filter(
+        (msg) =>
+          msg.conversation_id !== conversationId ||
+          msg.parent_message_id !== parentMessageId
+      ),
+    });
   },
   addReaction: async (messageId: string, emoji: string) => {
     const response = await makeRequest(

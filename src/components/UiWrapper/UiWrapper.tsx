@@ -99,7 +99,6 @@ const UiWrapper = () => {
 
       subscription.bind('message:created', (data) => {
         addMessage(data);
-        console.log(currentConversation);
         const isSameConversation =
           data.message.conversation_id === Number(currentConversation?.id);
         const isFullSelfChatting =
@@ -107,8 +106,8 @@ const UiWrapper = () => {
         const isNotChannel = !currentConversation?.is_channel;
         const isNotSelf = data.message.created_by !== session?.id;
         console.log(
-          isFullSelfChatting,
           isSameConversation,
+          isFullSelfChatting,
           isNotChannel,
           isNotSelf
         );
@@ -152,7 +151,7 @@ const UiWrapper = () => {
         }
       });
     };
-  }, [conversations, session]);
+  }, [conversations, session, currentConversation, userSettings]);
 
   return (
     <div className="flex h-screen bg-base-100">

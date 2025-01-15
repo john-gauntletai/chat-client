@@ -29,7 +29,7 @@ const MessageInput = ({
   parentMessageId,
   isThread = false,
 }: Props) => {
-  const { create, aiMessages } = useMessagesStore();
+  const { create, aiMessages, removeAIMessage } = useMessagesStore();
   const { currentConversation } = useConversationsStore();
   const { users } = useUsersStore();
   const { session } = useSessionStore();
@@ -228,6 +228,10 @@ const MessageInput = ({
       setIsTyping(false);
       // Auto submit after typing is complete
       handleSubmit(new Event('submit') as any);
+      removeAIMessage(
+        currentAIMessage.conversation_id,
+        currentAIMessage.parent_message_id
+      );
     }
   }, [typingIndex, isTyping, aiMessages, conversationId, parentMessageId]);
 
