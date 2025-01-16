@@ -135,7 +135,7 @@ const Message = ({
   };
 
   return (
-    <div className="relative flex gap-2 px-4 py-1.5 group hover:bg-base-200/50">
+    <div className="relative flex gap-2 py-1.5 group hover:bg-base-200/50">
       <div className="pt-0.5">
         <MessageAvatar user={user} />
       </div>

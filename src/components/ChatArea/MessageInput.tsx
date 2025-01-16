@@ -135,7 +135,7 @@ const MessageInput = ({
       }
     );
 
-    const { uploadUrl, fileUrl, s3Key } = await response.json();
+    const { uploadUrl, fileUrl, s3Key } = response;
     // Upload directly to S3 using the pre-signed URL
     await fetch(uploadUrl, {
       method: 'PUT',

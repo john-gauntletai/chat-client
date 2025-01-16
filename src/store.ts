@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { create } from 'zustand';
 
 const SERVER_API_HOST = import.meta.env.VITE_SERVER_API_HOST;
@@ -71,15 +72,13 @@ export const useSessionStore = create<{
   userSettings: null,
   fetch: async () => {
     const response = await makeRequest(`${SERVER_API_HOST}/session`);
-    const json = await response.json();
-    set({ session: json.user });
+    set({ session: response.user });
   },
   fetchUserSettings: async () => {
     const response = await makeRequest(
       `${SERVER_API_HOST}/api/users/me/settings`
     );
-    const json = await response.json();
-    set({ userSettings: json.settings });
+    set({ userSettings: response.settings });
   },
   updateUserSettings: async (settings: UserSettings) => {
     const response = await makeRequest(
@@ -89,8 +88,7 @@ export const useSessionStore = create<{
         body: JSON.stringify(settings),
       }
     );
-    const json = await response.json();
-    set({ userSettings: json.settings });
+    set({ userSettings: response.settings });
   },
 }));
 
@@ -105,8 +103,7 @@ export const useUsersStore = create<{
   userStatuses: {},
   fetch: async () => {
     const response = await makeRequest(`${SERVER_API_HOST}/api/users`);
-    const json = await response.json();
-    set({ users: json.users });
+    set({ users: response.users });
   },
   fetchStatuses: async () => {
     const response = await makeRequest(`${SERVER_API_HOST}/api/users/statuses`);
@@ -150,18 +147,16 @@ export const useConversationsStore = create<{
     const response = await makeRequest(
       `${SERVER_API_HOST}/api/users/me/conversations`
     );
-    const json = await response.json();
-
     // Get conversation_id from URL query params
     const urlParams = new URLSearchParams(window.location.search);
     const conversationId = urlParams.get('conversation_id');
 
     // Find conversation from URL param, or fallback to first conversation
     const initialConversation = conversationId
-      ? json.conversations.find((c) => c.id.toString() === conversationId)
-      : json.conversations[0];
+      ? response.conversations.find((c) => c.id.toString() === conversationId)
+      : response.conversations[0];
     set({
-      conversations: json.conversations,
+      conversations: response.conversations,
       currentConversation: initialConversation ?? null,
     });
   },
@@ -216,7 +211,7 @@ export const useConversationsStore = create<{
         method: 'POST',
       }
     );
-    const { conversation } = await response.json();
+    const { conversation } = response;
 
     set({
       conversations: get().conversations.map((c) =>
@@ -259,14 +254,13 @@ export const useMessagesStore = create<{
   aiMessages: [],
   fetch: async () => {
     const response = await makeRequest(`${SERVER_API_HOST}/api/messages`);
-    const json = await response.json();
-    set({ messages: json.messages });
+    set({ messages: response.messages });
   },
   fetchConversationMessages: async (conversationId: string) => {
     const response = await makeRequest(
       `${SERVER_API_HOST}/api/messages?conversationId=${conversationId}`
     );
-    const { messages } = await response.json();
+    const { messages } = response;
 
     // Replace existing messages for this conversation
     const otherMessages = get().messages.filter(
@@ -280,23 +274,22 @@ export const useMessagesStore = create<{
         method: 'POST',
         body: JSON.stringify({ conversationId, parentMessageId }),
       });
-      const json = await response.json();
-      if (!json.message) return;
+      if (!response.message) return;
       const existingMessageIndex = get().aiMessages.findIndex(
         (msg) =>
-          msg.conversation_id === json.message.conversation_id &&
-          ((!msg.parent_message_id && !json.message.parent_message_id) ||
-            msg.parent_message_id === json.message.parent_message_id)
+          msg.conversation_id === response.message.conversation_id &&
+          ((!msg.parent_message_id && !response.message.parent_message_id) ||
+            msg.parent_message_id === response.message.parent_message_id)
       );
 
       if (existingMessageIndex !== -1) {
         // Replace existing message
         const newMessages = [...get().aiMessages];
-        newMessages[existingMessageIndex] = json.message;
+        newMessages[existingMessageIndex] = response.message;
         set({ aiMessages: newMessages });
       } else {
         // Add new message
-        set({ aiMessages: [...get().aiMessages, json.message] });
+        set({ aiMessages: [...get().aiMessages, response.message] });
       }
     } catch (error) {
       console.error('Error fetching AI message:', error);
@@ -307,8 +300,7 @@ export const useMessagesStore = create<{
       method: 'POST',
       body: JSON.stringify(createMessageParams),
     });
-    const json = await response.json();
-    return json.message;
+    return response.message;
   },
   addMessage: (data: { message: Message }) => {
     const messageExists = get().messages.some(
@@ -341,26 +333,35 @@ export const useMessagesStore = create<{
         body: JSON.stringify({ emoji }),
       }
     );
-    const json = await response.json();
+
     const messages = get().messages.map((msg) =>
-      msg.id === messageId ? json.message : msg
+      msg.id === messageId ? response.message : msg
     );
     set({ messages });
   },
 }));
 
 export const makeRequest = async function (url: string, options?: RequestInit) {
-  const token = await window.Clerk.session.getToken();
-  if (!token) {
-    return window.location.reload();
+  try {
+    const token = await window.Clerk.session.getToken();
+    if (!token) {
+      return window.location.reload();
+    }
+    const fetchOptions = {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    };
+    const response = await fetch(url, fetchOptions);
+    if (response.status >= 400) {
+      throw new Error(await response.text());
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error making request:', error);
+    toast.error('Error making request', error.message);
   }
-  const fetchOptions = {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  };
-  return fetch(url, fetchOptions);
 };
