@@ -8,6 +8,7 @@ import {
 import { globalChannel, pusher } from '../../services/pusher';
 import Sidebar from '../Sidebar/Sidebar';
 import ChatArea from '../ChatArea/ChatArea';
+import { playAudio } from '../../services/elevenlabs';
 
 const UiWrapper = () => {
   const {
@@ -97,7 +98,7 @@ const UiWrapper = () => {
         updateConversation(data);
       });
 
-      subscription.bind('message:created', (data) => {
+      subscription.bind('message:created', async (data) => {
         addMessage(data);
         const isSameConversation =
           data.message.conversation_id === Number(currentConversation?.id);
@@ -105,18 +106,17 @@ const UiWrapper = () => {
           userSettings?.full_self_chatting?.[data.message.conversation_id];
         const isNotChannel = !currentConversation?.is_channel;
         const isNotSelf = data.message.created_by !== session?.id;
-        console.log(
-          isSameConversation,
-          isFullSelfChatting,
-          isNotChannel,
-          isNotSelf
-        );
+
         if (
           isSameConversation &&
           isFullSelfChatting &&
           isNotChannel &&
           isNotSelf
         ) {
+          // Play audio for the incoming message
+          await playAudio(data.message.content, data.message.created_by);
+
+          // Also fetch AI response
           fetchAIMessage(
             data.message.conversation_id,
             data.message.parent_message_id
