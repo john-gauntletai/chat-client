@@ -240,7 +240,8 @@ export const useMessagesStore = create<{
   fetchConversationMessages: (conversationId: string) => Promise<void>;
   fetchAIMessage: (
     conversationId: string,
-    parentMessageId?: string
+    parentMessageId?: string,
+    newMessageNotes?: string
   ) => Promise<void>;
   create: (createMessageParams: CreateMessageParams) => Promise<Message>;
   addMessage: (data: { message: Message }) => void;
@@ -266,12 +267,21 @@ export const useMessagesStore = create<{
     );
     set({ messages: [...otherMessages, ...messages] });
   },
-  fetchAIMessage: async (conversationId: string, parentMessageId?: string) => {
+  fetchAIMessage: async (
+    conversationId: string,
+    parentMessageId?: string,
+    newMessageNotes?: string
+  ) => {
     try {
-      const response = await makeRequest(`${SERVER_API_HOST}/api/messages/ai`, {
-        method: 'POST',
-        body: JSON.stringify({ conversationId, parentMessageId }),
-      });
+      const response = await makeRequest(
+        `${SERVER_API_HOST}/api/messages/ai${
+          newMessageNotes ? `?newMessageNotes=${newMessageNotes}` : ''
+        }`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ conversationId, parentMessageId }),
+        }
+      );
       if (!response.message) return;
       const existingMessageIndex = get().aiMessages.findIndex(
         (msg) =>

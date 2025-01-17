@@ -28,6 +28,7 @@ interface FilePreview {
 async function agentTakeover(
   messageContent: string,
   acceptCallback: () => void,
+  reviseCallback: (newMessageNotes: string) => void,
   rejectCallback: () => void
 ) {
   await playAudio(
@@ -41,7 +42,7 @@ async function agentTakeover(
   recognition.interimResults = false;
 
   recognition.onresult = async (event) => {
-    console.log(event.results, event.results[0][0].transcript);
+    recognition.stop();
     const response = event.results[0][0].transcript.toLowerCase();
     if (
       response.includes('yes') ||
@@ -57,10 +58,16 @@ async function agentTakeover(
     ) {
       rejectCallback();
       playAudio(`Message deleted.`, 'agent');
+    } else if (
+      response.includes('revise') ||
+      response.includes('add') ||
+      response.includes('also')
+    ) {
+      console.log('revise message', response);
+      reviseCallback(response);
+      playAudio(`Message will be revised.`, 'agent');
     }
-    recognition.stop();
   };
-  console.log('starting recognition');
   recognition.start();
 }
 
@@ -69,7 +76,8 @@ const MessageInput = ({
   parentMessageId,
   isThread = false,
 }: Props) => {
-  const { create, aiMessages, removeAIMessage } = useMessagesStore();
+  const { create, aiMessages, fetchAIMessage, removeAIMessage } =
+    useMessagesStore();
   const { currentConversation } = useConversationsStore();
   const { users } = useUsersStore();
   const { session } = useSessionStore();
@@ -276,6 +284,19 @@ const MessageInput = ({
         );
       };
 
+      const reviseCallback = (newMessageNotes: string) => {
+        setContent('');
+        removeAIMessage(
+          currentAIMessage.conversation_id,
+          currentAIMessage.parent_message_id
+        );
+        fetchAIMessage(
+          conversationId,
+          parentMessageId,
+          `You previously suggested this message: ${currentAIMessage.content}. notes for a revised message: ${newMessageNotes}`
+        );
+      };
+
       const rejectCallback = () => {
         setContent('');
         removeAIMessage(
@@ -284,7 +305,12 @@ const MessageInput = ({
         );
       };
 
-      agentTakeover(currentAIMessage.content, acceptCallback, rejectCallback);
+      agentTakeover(
+        currentAIMessage.content,
+        acceptCallback,
+        reviseCallback,
+        rejectCallback
+      );
     }
   }, [typingIndex, isTyping, aiMessages, conversationId, parentMessageId]);
 
