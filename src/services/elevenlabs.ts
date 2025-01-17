@@ -37,12 +37,21 @@ export const playAudio = async (text: string, userId?: string) => {
     const audioUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioUrl);
 
-    audio.onended = () => {
-      URL.revokeObjectURL(audioUrl);
-    };
+    return new Promise((resolve, reject) => {
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        resolve(undefined);
+      };
 
-    await audio.play();
+      audio.onerror = (error) => {
+        URL.revokeObjectURL(audioUrl);
+        reject(error);
+      };
+
+      audio.play().catch(reject);
+    });
   } catch (error) {
     console.error('Error playing audio:', error);
+    throw error;
   }
 };

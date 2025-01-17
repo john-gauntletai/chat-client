@@ -12,6 +12,7 @@ import {
   DocumentIcon,
   FilmIcon,
 } from '@heroicons/react/24/outline';
+import { playAudio } from '../../services/elevenlabs';
 
 interface Props {
   conversationId: string;
@@ -22,6 +23,45 @@ interface Props {
 interface FilePreview {
   file: File;
   previewUrl?: string;
+}
+
+async function agentTakeover(
+  messageContent: string,
+  acceptCallback: () => void,
+  rejectCallback: () => void
+) {
+  await playAudio(
+    `Jarvis here. I've prepared this message: ${messageContent}. Shall I send it?`,
+    'agent'
+  );
+  // Listen for user voice input
+  const recognition = new (window.webkitSpeechRecognition ||
+    window.SpeechRecognition)();
+  recognition.continuous = true;
+  recognition.interimResults = false;
+
+  recognition.onresult = async (event) => {
+    console.log(event.results, event.results[0][0].transcript);
+    const response = event.results[0][0].transcript.toLowerCase();
+    if (
+      response.includes('yes') ||
+      response.includes('yeah') ||
+      response.includes('yep')
+    ) {
+      acceptCallback();
+      playAudio(`Affirmative.`, 'agent');
+    } else if (
+      response.includes('no') ||
+      response.includes('nope') ||
+      response.includes('nah')
+    ) {
+      rejectCallback();
+      playAudio(`Message deleted.`, 'agent');
+    }
+    recognition.stop();
+  };
+  console.log('starting recognition');
+  recognition.start();
 }
 
 const MessageInput = ({
@@ -41,7 +81,8 @@ const MessageInput = ({
   const [filePreviews, setFilePreviews] = useState<FilePreview[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [typingIndex, setTypingIndex] = useState(0);
-  const typingSpeedRef = useRef<number>(50); // ms per character
+  const typingSpeedRef = useRef<number>(15); // ms per character
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const getPlaceholder = () => {
     if (isThread) {
@@ -220,18 +261,30 @@ const MessageInput = ({
         setTypingIndex((prev) => prev + 1);
 
         // Vary the typing speed slightly for more natural feel
-        typingSpeedRef.current = Math.random() * 10 + 15; // 15-25ms
+        typingSpeedRef.current = Math.random() * 5 + 5; // 5-10ms instead of 15-25ms
       }, typingSpeedRef.current);
 
       return () => clearTimeout(timeoutId);
     } else {
       setIsTyping(false);
-      // Auto submit after typing is complete
-      handleSubmit(new Event('submit') as any);
-      removeAIMessage(
-        currentAIMessage.conversation_id,
-        currentAIMessage.parent_message_id
-      );
+
+      const acceptCallback = () => {
+        handleSubmit(new Event('submit') as any);
+        removeAIMessage(
+          currentAIMessage.conversation_id,
+          currentAIMessage.parent_message_id
+        );
+      };
+
+      const rejectCallback = () => {
+        setContent('');
+        removeAIMessage(
+          currentAIMessage.conversation_id,
+          currentAIMessage.parent_message_id
+        );
+      };
+
+      agentTakeover(currentAIMessage.content, acceptCallback, rejectCallback);
     }
   }, [typingIndex, isTyping, aiMessages, conversationId, parentMessageId]);
 
@@ -245,6 +298,29 @@ const MessageInput = ({
       });
     };
   }, []);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const adjustHeight = () => {
+      textarea.style.height = 'inherit';
+      const computed = window.getComputedStyle(textarea);
+      const height =
+        parseInt(computed.getPropertyValue('border-top-width'), 10) +
+        parseInt(computed.getPropertyValue('padding-top'), 10) +
+        textarea.scrollHeight +
+        parseInt(computed.getPropertyValue('padding-bottom'), 10) +
+        parseInt(computed.getPropertyValue('border-bottom-width'), 10);
+
+      textarea.style.height = `${Math.min(height, 300)}px`; // Max height of 300px
+    };
+
+    textarea.addEventListener('input', adjustHeight);
+    adjustHeight(); // Initial adjustment
+
+    return () => textarea.removeEventListener('input', adjustHeight);
+  }, [content]);
 
   return (
     <div className="p-4 border-t border-base-300">
@@ -324,10 +400,11 @@ const MessageInput = ({
           <PaperClipIcon className="w-5 h-5" />
         </button>
         <textarea
+          ref={textareaRef}
           value={content}
           onChange={(e) => !isTyping && setContent(e.target.value)}
           placeholder={isTyping ? 'AI is typing...' : getPlaceholder()}
-          className="flex-1 min-h-[48px] max-h-32 py-3 px-4 textarea textarea-bordered resize-none overflow-auto text-[15px]"
+          className="flex-1 min-h-[48px] py-3 px-4 textarea textarea-bordered resize-none overflow-y-auto text-[15px] transition-all duration-200 scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-transparent hover:scrollbar-thumb-base-content/20"
           disabled={isUploading || isTyping}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -335,7 +412,7 @@ const MessageInput = ({
               handleSubmit(e);
             }
           }}
-          rows={2}
+          rows={1}
         />
         <button
           type="submit"
