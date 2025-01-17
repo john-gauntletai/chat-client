@@ -92,7 +92,7 @@ const ChatArea = () => {
         <div className="flex items-center gap-4">
           <label className="gap-2 cursor-pointer label">
             <span
-              className={`flex items-center gap-1 text-sm font-bold transition-all duration-300 ${
+              className={`flex items-center gap-1 text-sm font-bold transition-animation duration-300 ${
                 userSettings?.full_self_chatting?.[currentConversation.id]
                   ? 'text-transparent bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text bg-[length:200%_100%] animate-gradient'
                   : 'text-base-content/40 hover:text-base-content/60'

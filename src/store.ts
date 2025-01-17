@@ -107,8 +107,7 @@ export const useUsersStore = create<{
   },
   fetchStatuses: async () => {
     const response = await makeRequest(`${SERVER_API_HOST}/api/users/statuses`);
-    const json = await response.json();
-    const statusMap = json.statuses.reduce(
+    const statusMap = response.statuses.reduce(
       (acc: Record<string, string>, curr: any) => {
         acc[curr.user_id] = curr.status;
         return acc;
@@ -183,8 +182,7 @@ export const useConversationsStore = create<{
       method: 'POST',
       body: JSON.stringify({ name, is_channel, is_public, members }),
     });
-    const json = await response.json();
-    return json.conversation;
+    return response.conversation;
   },
   addConversation: (data: { conversation: Conversation }) => {
     set({ conversations: [...get().conversations, data.conversation] });
@@ -198,7 +196,7 @@ export const useConversationsStore = create<{
   },
   fetchAvailableChannels: async () => {
     const response = await makeRequest(`${SERVER_API_HOST}/api/conversations`);
-    const { conversations } = await response.json();
+    const { conversations } = response;
     set({
       conversations,
     });
