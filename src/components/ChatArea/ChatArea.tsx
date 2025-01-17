@@ -4,8 +4,9 @@ import {
   useConversationsStore,
   useSessionStore,
   useUsersStore,
+  makeRequest,
 } from '../../store';
-import { EllipsisVerticalIcon } from '@heroicons/react/24/outline';
+import { EllipsisVerticalIcon, BeakerIcon } from '@heroicons/react/24/outline';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import UserAvatar from '../UserAvatar/UserAvatar';
@@ -90,6 +91,13 @@ const ChatArea = () => {
           <h2 className="text-xl font-semibold">{otherUser?.username}</h2>
         </div>
         <div className="flex items-center gap-4">
+          <button
+            onClick={sendTestMessage}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium transition-colors rounded-md bg-base-200 hover:bg-base-300"
+          >
+            <BeakerIcon className="w-4 h-4" />
+            Receive a Test Message
+          </button>
           <label className="gap-2 cursor-pointer label">
             <span
               className={`flex items-center gap-1 text-sm font-bold transition-animation duration-300 ${
@@ -137,6 +145,30 @@ const ChatArea = () => {
     } catch (error) {
       console.error('Failed to leave channel:', error);
     }
+  };
+
+  const sendTestMessage = async () => {
+    if (!currentConversation || !session) return;
+
+    const otherUser = users.find((u) =>
+      currentConversation.conversation_members.some(
+        (m) => m.user_id === u.id && m.user_id !== session.id
+      )
+    );
+
+    if (!otherUser) return;
+
+    await makeRequest(
+      `${import.meta.env.VITE_SERVER_API_HOST}/api/messages/test`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          conversationId: currentConversation.id,
+          userId: otherUser.id,
+          content: 'hey, hows it going?',
+        }),
+      }
+    );
   };
 
   return (
