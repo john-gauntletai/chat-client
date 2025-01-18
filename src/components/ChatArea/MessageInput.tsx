@@ -47,7 +47,11 @@ async function agentTakeover(
     if (
       response.includes('yes') ||
       response.includes('yeah') ||
-      response.includes('yep')
+      response.includes('yep') ||
+      response.includes('ok') ||
+      response.includes('sure') ||
+      response.includes('alright') ||
+      response.includes('alrighty')
     ) {
       acceptCallback();
       playAudio(`Affirmative.`, 'agent');
