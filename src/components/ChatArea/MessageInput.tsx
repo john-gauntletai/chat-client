@@ -32,7 +32,7 @@ async function agentTakeover(
   rejectCallback: () => void
 ) {
   await playAudio(
-    `Jarvis here. I've prepared this message: ${messageContent}. Shall I send it?`,
+    `Jarvis here with this suggested message: ${messageContent}. Shall I send it?`,
     'agent'
   );
   // Listen for user voice input
