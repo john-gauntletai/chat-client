@@ -42,7 +42,6 @@ async function agentTakeover(
   recognition.interimResults = false;
 
   recognition.onresult = async (event) => {
-    recognition.stop();
     const response = event.results[0][0].transcript.toLowerCase();
     if (
       response.includes('yes') ||
@@ -55,6 +54,7 @@ async function agentTakeover(
     ) {
       acceptCallback();
       playAudio(`Affirmative.`, 'agent');
+      recognition.stop();
     } else if (
       response.includes('no') ||
       response.includes('nope') ||
@@ -62,6 +62,7 @@ async function agentTakeover(
     ) {
       rejectCallback();
       playAudio(`Message deleted.`, 'agent');
+      recognition.stop();
     } else if (
       response.includes('revise') ||
       response.includes('add') ||
@@ -70,6 +71,7 @@ async function agentTakeover(
       console.log('revise message', response);
       reviseCallback(response);
       playAudio(`Message will be revised.`, 'agent');
+      recognition.stop();
     }
   };
   recognition.start();
